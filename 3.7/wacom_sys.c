@@ -55,10 +55,11 @@ struct hid_descriptor {
 #define WAC_HID_FEATURE_REPORT	0x03
 #define WAC_MSG_RETRIES		5
 
-#define WAC_CMD_LED_CONTROL	0x20
-#define WAC_CMD_ICON_START	0x21
-#define WAC_CMD_ICON_XFER	0x23
-#define WAC_CMD_RETRIES		10
+#define WAC_CMD_WIRELESS_CONTROL	0x03
+#define WAC_CMD_LED_CONTROL		0x20
+#define WAC_CMD_ICON_START		0x21
+#define WAC_CMD_ICON_XFER		0x23
+#define WAC_CMD_RETRIES			10
 
 #define DEV_ATTR_RW_PERM (S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH)
 #define DEV_ATTR_RO_PERM (S_IRUSR | S_IRGRP | S_IROTH)
@@ -717,9 +718,19 @@ static void wacom_remove_shared_data(struct wacom_wac *wacom)
 static int wacom_led_control(struct wacom *wacom)
 {
 	unsigned char *buf;
+	int buf_size;
+	int command;
 	int retval;
+	
+	if (wacom->wacom_wac.features.quirks & WACOM_QUIRK_WIRELESS_KIT) {
+		command = WAC_CMD_WIRELESS_CONTROL;
+		buf_size = 13;
+	} else {
+		command = WAC_CMD_LED_CONTROL;
+		buf_size = 9;
+	}
 
-	buf = kzalloc(9, GFP_KERNEL);
+	buf = kzalloc(buf_size, GFP_KERNEL);
 	if (!buf)
 		return -ENOMEM;
 
@@ -733,9 +744,17 @@ static int wacom_led_control(struct wacom *wacom)
 		int ring_led = wacom->led.select[0] & 0x03;
 		int ring_lum = (((wacom->led.llv & 0x60) >> 5) - 1) & 0x03;
 		int crop_lum = (((wacom->led.crop_lum & 0x60) >> 5) - 1) & 0x03;
+		int bits = (crop_lum << 4) | (ring_lum << 2) | (ring_led);
 
-		buf[0] = WAC_CMD_LED_CONTROL;
-		buf[1] = (crop_lum << 4) | (ring_lum << 2) | (ring_led);
+		if (wacom->wacom_wac.features.quirks & WACOM_QUIRK_WIRELESS_KIT) {
+			buf[3] = 0x04;
+			buf[4] = 0x40 | bits;
+		} else {
+			buf[1] = bits;
+			
+			if (wacom->wacom_wac.features.type >= INTUOSPS)
+				buf[2] = ring_lum;
+		}
 	}
 	else {
 		int led = wacom->led.select[0] | 0x4;
@@ -744,15 +763,15 @@ static int wacom_led_control(struct wacom *wacom)
 		    wacom->wacom_wac.features.type == WACOM_24HD)
 			led |= (wacom->led.select[1] << 4) | 0x40;
 
-		buf[0] = WAC_CMD_LED_CONTROL;
 		buf[1] = led;
 		buf[2] = wacom->led.llv;
 		buf[3] = wacom->led.hlv;
 		buf[4] = wacom->led.img_lum;
 	}
 
-	retval = wacom_set_report(wacom->intf, 0x03, WAC_CMD_LED_CONTROL,
-				  buf, 9, WAC_CMD_RETRIES);
+	buf[0] = command;
+	retval = wacom_set_report(wacom->intf, 0x03, command, buf, buf_size,
+				  WAC_CMD_RETRIES);
 	kfree(buf);
 
 	return retval;
@@ -1019,7 +1038,7 @@ static int wacom_initialize_leds(struct wacom *wacom)
 
 	if (error) {
 		dev_err(&wacom->intf->dev,
-			"cannot create sysfs group err: %d\n", error);
+			"cannot create 'wacom_led' sysfs group: err %d\n", error);
 		return error;
 	}
 	wacom_led_control(wacom);
@@ -1151,6 +1170,37 @@ fail1:
 	return error;
 }
 
+static void wacom_unregister(struct wacom *wacom)
+{
+	struct wacom_wac *wacom_wac = &wacom->wacom_wac;
+	
+	if (wacom_wac->input) {
+		input_unregister_device(wacom_wac->input);
+		wacom_destroy_leds(wacom);
+	}
+
+	wacom_wac->input = NULL;
+}
+
+static int wacom_register(struct wacom *wacom)
+{
+	int error;
+	
+	error = wacom_initialize_leds(wacom);
+	if (error)
+		goto fail1;
+
+	error = wacom_register_input(wacom);
+	if (error)
+		goto fail2;
+
+	return 0;
+
+fail2: wacom_destroy_leds(wacom);
+fail1:
+	return error;
+}
+
 static void wacom_wireless_work(struct work_struct *work)
 {
 	struct wacom *wacom = container_of(work, struct wacom, work);
@@ -1170,16 +1220,12 @@ static void wacom_wireless_work(struct work_struct *work)
 	/* Stylus interface */
 	wacom1 = usb_get_intfdata(usbdev->config->interface[1]);
 	wacom_wac1 = &(wacom1->wacom_wac);
-	if (wacom_wac1->input)
-		input_unregister_device(wacom_wac1->input);
-	wacom_wac1->input = NULL;
+	wacom_unregister(wacom1);
 
 	/* Touch interface */
 	wacom2 = usb_get_intfdata(usbdev->config->interface[2]);
 	wacom_wac2 = &(wacom2->wacom_wac);
-	if (wacom_wac2->input)
-		input_unregister_device(wacom_wac2->input);
-	wacom_wac2->input = NULL;
+	wacom_unregister(wacom2);
 
 	if (wacom_wac->pid == 0) {
 		dev_info(&wacom->intf->dev, "wireless tablet disconnected\n");
@@ -1211,7 +1257,8 @@ static void wacom_wireless_work(struct work_struct *work)
 			 wacom_wac1->features.name);
 		wacom_wac1->shared->touch_max = wacom_wac1->features.touch_max;
 		wacom_wac1->shared->type = wacom_wac1->features.type;
-		error = wacom_register_input(wacom1);
+		wacom_wac1->features.quirks |= WACOM_QUIRK_WIRELESS_KIT;
+		error = wacom_register(wacom1);
 		if (error)
 			goto fail;
 
@@ -1229,7 +1276,8 @@ static void wacom_wireless_work(struct work_struct *work)
 			else
 				snprintf(wacom_wac2->name, WACOM_NAME_MAX,
 					 "%s (WL) Pad",wacom_wac2->features.name);
-			error = wacom_register_input(wacom2);
+			wacom_wac2->features.quirks |= WACOM_QUIRK_WIRELESS_KIT;
+			error = wacom_register(wacom2);
 			if (error)
 				goto fail;
 
@@ -1246,15 +1294,8 @@ static void wacom_wireless_work(struct work_struct *work)
 	return;
 
 fail:
-	if (wacom_wac2->input) {
-		input_unregister_device(wacom_wac2->input);
-		wacom_wac2->input = NULL;
-	}
-
-	if (wacom_wac1->input) {
-		input_unregister_device(wacom_wac1->input);
-		wacom_wac1->input = NULL;
-	}
+	wacom_unregister(wacom2);
+	wacom_unregister(wacom1);
 	return;
 }
 
@@ -1389,14 +1430,10 @@ static int wacom_probe(struct usb_interface *intf, const struct usb_device_id *i
 	wacom->irq->transfer_dma = wacom->data_dma;
 	wacom->irq->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 
-	error = wacom_initialize_leds(wacom);
-	if (error)
-		goto fail4;
-
 	if (!(features->quirks & WACOM_QUIRK_NO_INPUT)) {
-		error = wacom_register_input(wacom);
+		error = wacom_register(wacom);
 		if (error)
-			goto fail5;
+			goto fail4;
 	}
 
 	/* Note that if query fails it is not a hard failure */
@@ -1418,7 +1455,7 @@ static int wacom_probe(struct usb_interface *intf, const struct usb_device_id *i
 
 	return 0;
 
- fail5: wacom_destroy_leds(wacom);
+ fail5: wacom_unregister(wacom);
  fail4:	wacom_remove_shared_data(wacom_wac);
  fail3:	usb_free_urb(wacom->irq);
  fail2:	usb_free_coherent(dev, WACOM_PKGLEN_MAX, wacom_wac->data, wacom->data_dma);
@@ -1434,10 +1471,8 @@ static void wacom_disconnect(struct usb_interface *intf)
 
 	usb_kill_urb(wacom->irq);
 	cancel_work_sync(&wacom->work);
-	if (wacom->wacom_wac.input)
-		input_unregister_device(wacom->wacom_wac.input);
+	wacom_unregister(wacom);
 	wacom_destroy_battery(wacom);
-	wacom_destroy_leds(wacom);
 	usb_free_urb(wacom->irq);
 	usb_free_coherent(interface_to_usbdev(intf), WACOM_PKGLEN_MAX,
 			wacom->wacom_wac.data, wacom->data_dma);
