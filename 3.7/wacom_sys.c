@@ -999,6 +999,18 @@ static DEVICE_ATTR(name##_timer, DEV_ATTR_RW_PERM,			\
 DEVICE_WIRELESS_TIMER_ATTR(sleep, SLEEP);
 DEVICE_WIRELESS_TIMER_ATTR(powersave, POWERSAVE);
 
+static ssize_t wacom_wireless_dev_match_show(struct device *dev,
+					     struct device_attribute *attr,
+					     char *buf)
+{
+	struct wacom *wacom = dev_get_drvdata(dev);
+	return scnprintf(buf, PAGE_SIZE, "%04x:%04x\n", USB_VENDOR_ID_WACOM,
+			 wacom->wacom_wac.pid);
+}
+
+static DEVICE_ATTR(dev_match, DEV_ATTR_RO_PERM, wacom_wireless_dev_match_show,
+		   NULL);
+
 static struct attribute *wireless_attrs[] = {
 	&dev_attr_sleep_timer.attr,
 	&dev_attr_powersave_timer.attr,
@@ -1246,8 +1258,12 @@ static void wacom_unregister_wireless(struct wacom *wacom)
 {
 	struct wacom_features *wacom_features = &wacom->wacom_wac.features;
 	
-	if (!(wacom_features->quirks & WACOM_QUIRK_WIRELESS_KIT) ||
-	    wacom_features->device_type != BTN_TOOL_PEN)
+	if (!(wacom_features->quirks & WACOM_QUIRK_WIRELESS_KIT))
+		return;
+		
+	device_remove_file(&wacom->intf->dev, &dev_attr_dev_match);
+		
+	if (wacom_features->device_type != BTN_TOOL_PEN)
 		return;
 
 	sysfs_remove_group(&wacom->intf->dev.kobj,
@@ -1260,8 +1276,18 @@ static int wacom_register_wireless(struct wacom *wacom)
 	struct wacom_features *wacom_features = &wacom_wac->features;
 	int error;
 
-	if (!(wacom_features->quirks & WACOM_QUIRK_WIRELESS_KIT) ||
-	    wacom_features->device_type != BTN_TOOL_PEN)
+	if (!(wacom_features->quirks & WACOM_QUIRK_WIRELESS_KIT))
+		return 0;
+	
+	error = device_create_file(&wacom->intf->dev, &dev_attr_dev_match);
+	if (error) {
+		dev_err(&wacom->intf->dev,
+			"cannot create 'dev_match' sysfs file: err %d\n",
+			error);
+		return error;
+	}
+	
+	if(wacom_features->device_type != BTN_TOOL_PEN)
 		return 0;
 
 	wacom->wireless.sleep_timer = WWK_SLEEP_DEFAULT;
@@ -1375,6 +1401,7 @@ static void wacom_wireless_work(struct work_struct *work)
 		wacom_wac1->shared->touch_max = wacom_wac1->features.touch_max;
 		wacom_wac1->shared->type = wacom_wac1->features.type;
 		wacom_wac1->features.quirks |= WACOM_QUIRK_WIRELESS_KIT;
+		wacom_wac1->pid = wacom_wac->pid;
 		error = wacom_register(wacom1);
 		if (error)
 			goto fail;
@@ -1394,6 +1421,7 @@ static void wacom_wireless_work(struct work_struct *work)
 				snprintf(wacom_wac2->name, WACOM_NAME_MAX,
 					 "%s (WL) Pad",wacom_wac2->features.name);
 			wacom_wac2->features.quirks |= WACOM_QUIRK_WIRELESS_KIT;
+			wacom_wac2->pid = wacom_wac->pid;
 			error = wacom_register(wacom2);
 			if (error)
 				goto fail;
