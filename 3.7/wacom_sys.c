@@ -732,7 +732,7 @@ static int wacom_led_control(struct wacom *wacom)
 		 */
 		int ring_led = wacom->led.select[0] & 0x03;
 		int ring_lum = (((wacom->led.llv & 0x60) >> 5) - 1) & 0x03;
-		int crop_lum = 0;
+		int crop_lum = (((wacom->led.crop_lum & 0x60) >> 5) - 1) & 0x03;
 
 		buf[0] = WAC_CMD_LED_CONTROL;
 		buf[1] = (crop_lum << 4) | (ring_lum << 2) | (ring_led);
@@ -880,6 +880,7 @@ static DEVICE_ATTR(name##_luminance, DEV_ATTR_RW_PERM,			\
 
 DEVICE_LUMINANCE_ATTR(status0, llv);
 DEVICE_LUMINANCE_ATTR(status1, hlv);
+DEVICE_LUMINANCE_ATTR(crop_marks, crop_lum);
 DEVICE_LUMINANCE_ATTR(buttons, img_lum);
 
 static ssize_t wacom_button_image_store(struct device *dev, int button_id,
@@ -952,6 +953,7 @@ static struct attribute_group intuos4_led_attr_group = {
 
 static struct attribute *intuos5_led_attrs[] = {
 	&dev_attr_status0_luminance.attr,
+	&dev_attr_crop_marks_luminance.attr,
 	&dev_attr_status_led0_select.attr,
 	NULL
 };
@@ -1002,6 +1004,7 @@ static int wacom_initialize_leds(struct wacom *wacom)
 			wacom->led.select[1] = 0;
 			wacom->led.llv = 32;
 			wacom->led.hlv = 0;
+			wacom->led.crop_lum = 32;
 			wacom->led.img_lum = 0;
 
 			error = sysfs_create_group(&wacom->intf->dev.kobj,

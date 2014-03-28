@@ -1,0 +1,71 @@
+#!/bin/bash
+err()
+{
+  echo "$@" >&2
+  exit 1
+}
+
+set_led()
+{
+  echo $1 > "$led_sel"
+}
+set_rng()
+{
+#  echo $(expr $1 \* 32 ) > "$rng_lum"
+  echo $1 > "$rng_lum"
+}
+set_crp()
+{
+#  echo $(expr $1 \* 32 ) > "$crp_lum"
+  echo $1 > "$crp_lum"
+}
+
+if [ -z "$1" ]; then
+	loc="$(find /sys/ -name wacom_led)"
+	[ ! -d "$loc" ] && err "no wacom_led found in /sys/"
+else
+	loc="$1"
+	[ ! -d "$loc" ] && err "not a folder: $1"
+fi
+
+led_sel="$loc/status_led0_select"
+rng_lum="$loc/status0_luminance"
+crp_lum="$loc/crop_marks_luminance"
+
+[ ! -f "$led_sel" ] && err "no led selector found: $led_sel"
+[ ! -f "$rng_lum" ] && err "no ring leds found: $rng_lum"
+[ ! -f "$crp_lum" ] && err "no crop leds found: $crp_lum"
+
+old_led=$(cat "$led_sel")
+old_rng=$(cat "$rng_lum")
+old_crp=$(cat "$crp_lum")
+
+set_led 0
+set_crp 0
+set_rng 0
+
+for j in {0..1}; do
+  for i in {1..127}; do
+    set_crp $i
+  done
+  for i in {126..0}; do
+    set_crp $i
+  done
+done
+
+for k in {0..3}; do
+  set_led $k
+  for j in {0..1}; do
+    for i in {1..127}; do
+      set_rng $i
+    done
+    for i in {126..0}; do
+      set_rng $i
+    done
+  done
+done
+
+set_led $old_led
+set_crp $old_crp
+set_rng $old_rng
+

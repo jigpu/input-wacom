@@ -121,6 +121,7 @@ struct wacom {
 		u8 llv;       /* status led brightness no button (1..127) */
 		u8 hlv;       /* status led brightness button pressed (1..127) */
 		u8 img_lum;   /* OLED matrix display brightness */
+		u8 crop_lum;  /* crop marks led brightness (1..127) */
 	} led;
 	struct power_supply battery;
 };
