@@ -60,6 +60,10 @@ struct hid_descriptor {
 #define WAC_CMD_ICON_XFER	0x23
 #define WAC_CMD_RETRIES		10
 
+#define DEV_ATTR_RW_PERM (S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH)
+#define DEV_ATTR_RO_PERM (S_IRUSR | S_IRGRP | S_IROTH)
+#define DEV_ATTR_WO_PERM (S_IWUSR | S_IWGRP)
+
 static int wacom_get_report(struct usb_interface *intf, u8 type, u8 id,
 			    void *buf, size_t size, unsigned int retries)
 {
@@ -825,9 +829,10 @@ static ssize_t wacom_led##SET_ID##_select_show(struct device *dev,	\
 	struct device_attribute *attr, char *buf)			\
 {									\
 	struct wacom *wacom = dev_get_drvdata(dev);			\
-	return snprintf(buf, 2, "%d\n", wacom->led.select[SET_ID]);	\
+	return scnprintf(buf, PAGE_SIZE, "%d\n",			\
+			 wacom->led.select[SET_ID]);			\
 }									\
-static DEVICE_ATTR(status_led##SET_ID##_select, S_IWUSR | S_IRUSR,	\
+static DEVICE_ATTR(status_led##SET_ID##_select, DEV_ATTR_RW_PERM,	\
 		    wacom_led##SET_ID##_select_show,			\
 		    wacom_led##SET_ID##_select_store)
 
@@ -863,8 +868,15 @@ static ssize_t wacom_##name##_luminance_store(struct device *dev,	\
 	return wacom_luminance_store(wacom, &wacom->led.field,		\
 				     buf, count);			\
 }									\
-static DEVICE_ATTR(name##_luminance, S_IWUSR,				\
-		   NULL, wacom_##name##_luminance_store)
+static ssize_t wacom_##name##_luminance_show(struct device *dev,	\
+	struct device_attribute *attr, char *buf)			\
+{									\
+	struct wacom *wacom = dev_get_drvdata(dev);			\
+	return scnprintf(buf, PAGE_SIZE, "%d\n", wacom->led.field);	\
+}									\
+static DEVICE_ATTR(name##_luminance, DEV_ATTR_RW_PERM,			\
+		   wacom_##name##_luminance_show,			\
+		   wacom_##name##_luminance_store)
 
 DEVICE_LUMINANCE_ATTR(status0, llv);
 DEVICE_LUMINANCE_ATTR(status1, hlv);
@@ -894,7 +906,7 @@ static ssize_t wacom_btnimg##BUTTON_ID##_store(struct device *dev,	\
 {									\
 	return wacom_button_image_store(dev, BUTTON_ID, buf, count);	\
 }									\
-static DEVICE_ATTR(button##BUTTON_ID##_rawimg, S_IWUSR,			\
+static DEVICE_ATTR(button##BUTTON_ID##_rawimg, DEV_ATTR_WO_PERM,	\
 		   NULL, wacom_btnimg##BUTTON_ID##_store)
 
 DEVICE_BTNIMG_ATTR(0);
