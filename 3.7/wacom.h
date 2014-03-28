@@ -124,6 +124,10 @@ struct wacom {
 		u8 crop_lum;  /* crop marks led brightness (1..127) */
 	} led;
 	struct power_supply battery;
+	struct wacom_wireless {
+		u8 sleep_timer;
+		u8 powersave_timer;
+	} wireless;
 };
 
 static inline void wacom_schedule_work(struct wacom_wac *wacom_wac)

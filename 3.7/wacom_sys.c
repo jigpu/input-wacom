@@ -61,6 +61,14 @@ struct hid_descriptor {
 #define WAC_CMD_ICON_XFER		0x23
 #define WAC_CMD_RETRIES			10
 
+/* Wacom Wireless Kit */
+#define WWK_SLEEP_MIN		5
+#define WWK_SLEEP_MAX		60
+#define WWK_SLEEP_DEFAULT	0
+#define WWK_POWERSAVE_MIN	1
+#define WWK_POWERSAVE_MAX	60
+#define WWK_POWERSAVE_DEFAULT	0
+
 #define DEV_ATTR_RW_PERM (S_IWUSR | S_IRUSR | S_IRGRP | S_IWGRP | S_IROTH)
 #define DEV_ATTR_RO_PERM (S_IRUSR | S_IRGRP | S_IROTH)
 #define DEV_ATTR_WO_PERM (S_IWUSR | S_IWGRP)
@@ -747,6 +755,8 @@ static int wacom_led_control(struct wacom *wacom)
 		int bits = (crop_lum << 4) | (ring_lum << 2) | (ring_led);
 
 		if (wacom->wacom_wac.features.quirks & WACOM_QUIRK_WIRELESS_KIT) {
+			buf[1] = wacom->wireless.sleep_timer;
+			buf[2] = wacom->wireless.powersave_timer;
 			buf[3] = 0x04;
 			buf[4] = 0x40 | bits;
 		} else {
@@ -775,6 +785,12 @@ static int wacom_led_control(struct wacom *wacom)
 	kfree(buf);
 
 	return retval;
+}
+
+static int wacom_wireless_control(struct wacom *wacom)
+{
+	/* currently the wireless timers ride along with the led controls */
+	return wacom_led_control(wacom);
 }
 
 static int wacom_led_putimage(struct wacom *wacom, int button_id, const void *img)
@@ -937,6 +953,62 @@ DEVICE_BTNIMG_ATTR(4);
 DEVICE_BTNIMG_ATTR(5);
 DEVICE_BTNIMG_ATTR(6);
 DEVICE_BTNIMG_ATTR(7);
+
+#define DEVICE_WIRELESS_TIMER_ATTR(name, def)				\
+static ssize_t wacom_wireless_##name##_timer_store(struct device *dev,	\
+	struct device_attribute *attr, const char *buf, size_t count)	\
+{									\
+	struct wacom *wacom = dev_get_drvdata(dev);			\
+	int time, err;							\
+	err = kstrtoint(buf, 10, &time);				\
+	if (err)							\
+		return err;						\
+	if (time > WWK_##def##_MAX)					\
+		return -ERANGE;						\
+	else if (time < WWK_##def##_MIN) {				\
+		switch (time) {						\
+			case -1:					\
+				time = WWK_##def##_DEFAULT;		\
+			case 0:						\
+				time = WWK_##def##_MAX + 1;		\
+			default:					\
+				return -ERANGE;				\
+		}							\
+	}								\
+	mutex_lock(&wacom->lock);					\
+	wacom->wireless.name##_timer = time;				\
+	err = wacom_wireless_control(wacom);				\
+	mutex_unlock(&wacom->lock);					\
+	return err < 0 ? err : count;					\
+}									\
+static ssize_t wacom_wireless_##name##_timer_show(struct device *dev,	\
+	struct device_attribute *attr, char *buf)			\
+{									\
+	struct wacom *wacom = dev_get_drvdata(dev);			\
+	int time = wacom->wireless.name##_timer;			\
+	if (time > WWK_##def##_MAX)					\
+		time = 0;						\
+	else if (time == WWK_##def##_DEFAULT)				\
+		time = -1;						\
+	return scnprintf(buf, PAGE_SIZE, "%d\n",time);			\
+}									\
+static DEVICE_ATTR(name##_timer, DEV_ATTR_RW_PERM,			\
+		   wacom_wireless_##name##_timer_show,			\
+		   wacom_wireless_##name##_timer_store)
+
+DEVICE_WIRELESS_TIMER_ATTR(sleep, SLEEP);
+DEVICE_WIRELESS_TIMER_ATTR(powersave, POWERSAVE);
+
+static struct attribute *wireless_attrs[] = {
+	&dev_attr_sleep_timer.attr,
+	&dev_attr_powersave_timer.attr,
+	NULL
+};
+
+static struct attribute_group wireless_attr_group = {
+	.name = "wacom_wireless",
+	.attrs = wireless_attrs,
+};
 
 static struct attribute *cintiq_led_attrs[] = {
 	&dev_attr_status_led0_select.attr,
@@ -1170,12 +1242,52 @@ fail1:
 	return error;
 }
 
+static void wacom_unregister_wireless(struct wacom *wacom)
+{
+	struct wacom_features *wacom_features = &wacom->wacom_wac.features;
+	
+	if (!(wacom_features->quirks & WACOM_QUIRK_WIRELESS_KIT) ||
+	    wacom_features->device_type != BTN_TOOL_PEN)
+		return;
+
+	sysfs_remove_group(&wacom->intf->dev.kobj,
+			   &wireless_attr_group);
+}
+
+static int wacom_register_wireless(struct wacom *wacom)
+{
+	struct wacom_wac *wacom_wac = &wacom->wacom_wac;
+	struct wacom_features *wacom_features = &wacom_wac->features;
+	int error;
+
+	if (!(wacom_features->quirks & WACOM_QUIRK_WIRELESS_KIT) ||
+	    wacom_features->device_type != BTN_TOOL_PEN)
+		return 0;
+
+	wacom->wireless.sleep_timer = WWK_SLEEP_DEFAULT;
+	wacom->wireless.powersave_timer = WWK_POWERSAVE_DEFAULT;
+
+	error = sysfs_create_group(&wacom->intf->dev.kobj,
+				   &wireless_attr_group);
+	if (error) {
+		dev_err(&wacom->intf->dev,
+			"cannot create 'wacom_wireless' sysfs group: err %d\n",
+			error);
+		return error;
+	}
+
+	wacom_wireless_control(wacom);
+	
+	return 0;
+}
+
 static void wacom_unregister(struct wacom *wacom)
 {
 	struct wacom_wac *wacom_wac = &wacom->wacom_wac;
 	
 	if (wacom_wac->input) {
 		input_unregister_device(wacom_wac->input);
+		wacom_unregister_wireless(wacom);
 		wacom_destroy_leds(wacom);
 	}
 
@@ -1190,12 +1302,17 @@ static int wacom_register(struct wacom *wacom)
 	if (error)
 		goto fail1;
 
-	error = wacom_register_input(wacom);
+	error = wacom_register_wireless(wacom);
 	if (error)
 		goto fail2;
+	
+	error = wacom_register_input(wacom);
+	if (error)
+		goto fail3;
 
 	return 0;
 
+fail3: wacom_unregister_wireless(wacom);
 fail2: wacom_destroy_leds(wacom);
 fail1:
 	return error;
