@@ -33,6 +33,7 @@
 #define HID_COLLECTION			0xa1
 #define HID_COLLECTION_LOGICAL		0x02
 #define HID_COLLECTION_END		0xc0
+#define HID_PHYSICAL_MAXIMUM            0x46
 
 struct hid_descriptor {
 	struct usb_descriptor_header header;
@@ -399,6 +400,10 @@ static int wacom_parse_hid(struct usb_interface *intf,
 					features->x_max =
 						get_unaligned_le16(&report[i + 3]);
 					i += 4;
+					if (report[i+1] == HID_PHYSICAL_MAXIMUM) {
+						features->x_phy = get_unaligned_le16(&report[i + 2]);
+						i += 3;
+					}
 				}
 				break;
 
@@ -443,6 +448,10 @@ static int wacom_parse_hid(struct usb_interface *intf,
 					features->y_max =
 						get_unaligned_le16(&report[i + 3]);
 					i += 4;
+					if (report[i+1] == HID_PHYSICAL_MAXIMUM) {
+						features->y_phy = get_unaligned_le16(&report[i + 2]);
+						i += 3;
+					}
 				}
 				break;
 
