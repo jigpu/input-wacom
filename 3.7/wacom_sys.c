@@ -448,6 +448,7 @@ static int wacom_parse_hid(struct usb_interface *intf,
 
 			case HID_USAGE_FINGER:
 				finger = 1;
+				pen = 0;
 				i++;
 				break;
 
@@ -458,6 +459,7 @@ static int wacom_parse_hid(struct usb_interface *intf,
 			 */
 			case HID_USAGE_STYLUS:
 				pen = 1;
+				finger = 0;
 				i++;
 				break;
 
