@@ -831,6 +831,9 @@ static ssize_t wacom_led_select_store(struct device *dev, int set_id,
 	unsigned int id;
 	int err;
 
+	if (!wacom)
+		return -ENODEV;
+
 	err = kstrtouint(buf, 10, &id);
 	if (err)
 		return err;
@@ -855,6 +858,8 @@ static ssize_t wacom_led##SET_ID##_select_show(struct device *dev,	\
 	struct device_attribute *attr, char *buf)			\
 {									\
 	struct wacom *wacom = dev_get_drvdata(dev);			\
+	if (!wacom)							\
+		return -ENODEV;						\
 	return snprintf(buf, PAGE_SIZE, "%d\n",				\
 			wacom->led.select[SET_ID]);			\
 }									\
@@ -890,7 +895,8 @@ static ssize_t wacom_##name##_luminance_store(struct device *dev,	\
 	struct device_attribute *attr, const char *buf, size_t count)	\
 {									\
 	struct wacom *wacom = dev_get_drvdata(dev);			\
-									\
+	if (!wacom)							\
+		return -ENODEV;						\
 	return wacom_luminance_store(wacom, &wacom->led.field,		\
 				     buf, count);			\
 }									\
@@ -898,6 +904,8 @@ static ssize_t wacom_##name##_luminance_show(struct device *dev,	\
 	struct device_attribute *attr, char *buf)			\
 {									\
 	struct wacom *wacom = dev_get_drvdata(dev);			\
+	if (!wacom)							\
+		return -ENODEV;						\
 	return scnprintf(buf, PAGE_SIZE, "%d\n", wacom->led.field);	\
 }									\
 static DEVICE_ATTR(name##_luminance, DEV_ATTR_RW_PERM,			\
@@ -913,6 +921,9 @@ static ssize_t wacom_button_image_store(struct device *dev, int button_id,
 {
 	struct wacom *wacom = dev_get_drvdata(dev);
 	int err;
+
+	if (!wacom)
+		return -ENODEV;
 
 	if (count != 1024)
 		return -EINVAL;

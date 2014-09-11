@@ -577,6 +577,9 @@ static ssize_t wacom_led_select_store(struct device *dev, int set_id,
 	u8 id = 0;
 	int err, i;
 
+	if (!wacom)
+		return -ENODEV;
+
 	for (i = 0; i < count; i++)
 		id = id * 10 + buf[i] - '0';
 
@@ -600,6 +603,8 @@ static ssize_t wacom_led##SET_ID##_select_show(struct device *dev,     \
 	struct device_attribute *attr, char *buf)                      \
 {                                                                      \
 	struct wacom *wacom = dev_get_drvdata(dev);                    \
+	if (!wacom)                                                    \
+		return -ENODEV;                                        \
 	return snprintf(buf, PAGE_SIZE, "%d\n",                        \
 			wacom->led.select[SET_ID]);                    \
 }                                                                      \
