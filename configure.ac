@@ -72,6 +72,17 @@ AC_DEFUN([WCM_ISBUILDDIR], [\
        -f "$1/include/generated/autoconf.h" \) \
 ])
 
+AC_DEFUN([WCM_BUILDVER], [\
+    for F in "$1/include/linux/version.h" \
+             "$1/include/generated/utsrelease.h" \
+             "$1/include/linux/utsrelease.h"; do
+        if test -f "$F"; then
+            UTSRELEASE=$(grep UTS_RELEASE "$F" | sed -e 's/^[[^"]]*"\([[^"]]*\).*$/\1/g')
+            if test -n "$UTSRELEASE"; then echo $UTSRELEASE; break; fi
+        fi
+    done \
+])
+
 AC_ARG_WITH(kernel,
 	AS_HELP_STRING([--with-kernel=dir], [Specify kernel source directory]),
 	[WCM_KERNEL_DIR="$withval"])
@@ -90,8 +101,13 @@ if test "$WCM_KERNEL_DIR" = "yes" -o -z "$WCM_KERNEL_DIR"; then
 	m4_foreach([ROOTDIR], SEARCH_DIRECTORIES, [
 		if test -z "$WCM_KERNEL_DIR"; then
 			if test WCM_ISBUILDDIR(ROOTDIR); then
-				WCM_KERNEL_DIR="ROOTDIR"
-				AC_MSG_RESULT($WCM_KERNEL_DIR)
+				V=$(WCM_BUILDVER(ROOTDIR))
+				if test -z "$V"; then V="unknown"; fi
+				if test "$MODUTS" = "$V"; then
+					WCM_ENV_KERNEL=yes
+					WCM_KERNEL_DIR="ROOTDIR"
+					AC_MSG_RESULT($WCM_KERNEL_DIR)
+				fi
 			fi
 		fi
 	])
@@ -99,24 +115,36 @@ if test "$WCM_KERNEL_DIR" = "yes" -o -z "$WCM_KERNEL_DIR"; then
 	if test -z "$WCM_KERNEL_DIR"; then
 		AC_MSG_RESULT([not found])
 		AC_MSG_NOTICE([Unable to find build config in any of: SEARCH_DIRECTORIES])
+		AC_MSG_NOTICE([Expanding search for kernel sources...])
+
+		AC_DEFUN([FIND_DIRECTORIES], [[
+			  [/lib/modules/],
+			  [/usr/src/],
+			]])
+		m4_foreach([ROOTDIR], FIND_DIRECTORIES, [
+			CANDIDATES=`find ROOTDIR -type d -exec test WCM_ISBUILDDIR({}) \; -print`
+
+			for D in $CANDIDATES; do
+				V=$(WCM_BUILDVER($D))
+				if test -z "$V"; then V="unknown"; fi
+				MSG="Found: $D ($V)"
+				if test "$V" == "$MODUTS"; then
+					WCM_KERNEL_DIR=$D
+					MSG="$MSG *"
+				fi
+				AC_MSG_NOTICE([$MSG])
+			done
+		])
 	fi
 elif test "$WCM_KERNEL_DIR" != "no"; then
 	AC_MSG_RESULT([$WCM_KERNEL_DIR])
 	if test \! WCM_ISBUILDDIR($WCM_KERNEL_DIR); then
 		AC_MSG_NOTICE([Kernel directory does not appear to have needed config files])
 	fi
-fi
-
-dnl Final sanity check to make sure the kernel versions match
-for F in "$WCM_KERNEL_DIR/include/linux/version.h" \
-	"$WCM_KERNEL_DIR/include/generated/utsrelease.h" \
-	"$WCM_KERNEL_DIR/include/linux/utsrelease.h"; do
-	if test -f $F; then
-		if test "$MODUTS" = "`grep UTS_RELEASE $F | sed -e 's/^[[^"]]*"\([[^"]]*\).*$/\1/g'`"; then
-			WCM_ENV_KERNEL=yes
-		fi
+	if test "$MODUTS" = "$(WCM_BUILDVER($WCM_KERNEL_DIR))"; then
+		WCM_ENV_KERNEL=yes
 	fi
-done
+fi
 
 if test "$WCM_ENV_KERNEL" = "no"; then
 	AC_MSG_ERROR([We could not find the development environment to dnl
