@@ -11,6 +11,8 @@
 
 #include <linux/types.h>
 #include <linux/hid.h>
+#include <linux/power_supply.h>
+#include <linux/version.h>
 
 /* maximum packet length for USB devices */
 #define WACOM_PKGLEN_MAX	192
@@ -199,6 +201,14 @@ struct hid_data {
 };
 
 struct wacom_power_supply {
+	struct wacom *wacom;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
+	struct power_supply *power_supply;
+	struct power_supply_desc desc;
+#else
+	struct power_supply power_supply;
+#endif
+
 	char name[WACOM_NAME_MAX];
 	int capacity;
 	int charging;

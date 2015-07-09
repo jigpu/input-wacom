@@ -67,8 +67,8 @@ static void wacom_notify_battery(struct wacom_wac *wacom_wac,
 		battery->connected = bat_connected;
 		ac->connected      = ps_connected;
 
-		if (WACOM_POWERSUPPLY_DEVICE(wacom->battery))
-			power_supply_changed(WACOM_POWERSUPPLY_REF(wacom->battery));
+		if (WACOM_POWERSUPPLY_DEVICE(battery->power_supply))
+			power_supply_changed(WACOM_POWERSUPPLY_REF(battery->power_supply));
 	}
 }
 
@@ -2061,6 +2061,7 @@ static int wacom_status_irq(struct wacom_wac *wacom_wac, size_t len)
 	struct wacom *wacom = container_of(wacom_wac, struct wacom, wacom_wac);
 	struct wacom_features *features = &wacom_wac->features;
 	unsigned char *data = wacom_wac->data;
+	struct wacom_power_supply *battery = &wacom->wacom_wac.battery;
 
 	if (data[0] != WACOM_REPORT_USB)
 		return 0;
@@ -2074,13 +2075,13 @@ static int wacom_status_irq(struct wacom_wac *wacom_wac, size_t len)
 	}
 
 	if (data[9] & 0x02) { /* wireless module is attached */
-		int battery = (data[8] & 0x3f) * 100 / 31;
+		int capacity = (data[8] & 0x3f) * 100 / 31;
 		bool charging = !!(data[8] & 0x80);
 
-		wacom_notify_battery(wacom_wac, battery, charging,
-				     battery || charging, 1);
+		wacom_notify_battery(wacom_wac, capacity, charging,
+				     capacity || charging, 1);
 
-		if (!WACOM_POWERSUPPLY_DEVICE(wacom->battery) &&
+		if (!WACOM_POWERSUPPLY_DEVICE(battery->power_supply) &&
 		    !(features->quirks & WACOM_QUIRK_BATTERY)) {
 			features->quirks |= WACOM_QUIRK_BATTERY;
 			INIT_WORK(&wacom->work, wacom_battery_work);
@@ -2088,7 +2089,7 @@ static int wacom_status_irq(struct wacom_wac *wacom_wac, size_t len)
 		}
 	}
 	else if ((features->quirks & WACOM_QUIRK_BATTERY) &&
-		 WACOM_POWERSUPPLY_DEVICE(wacom->battery)) {
+		 WACOM_POWERSUPPLY_DEVICE(battery->power_supply)) {
 		features->quirks &= ~WACOM_QUIRK_BATTERY;
 		INIT_WORK(&wacom->work, wacom_battery_work);
 		wacom_schedule_work(wacom_wac);

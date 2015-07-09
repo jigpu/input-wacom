@@ -130,15 +130,6 @@ struct wacom {
 		u8 img_lum;   /* OLED matrix display brightness */
 	} led;
 	bool led_initialized;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
-	struct power_supply *battery;
-	struct power_supply *ac;
-	struct power_supply_desc battery_desc;
-	struct power_supply_desc ac_desc;
-#else
-	struct power_supply battery;
-	struct power_supply ac;
-#endif
 };
 
 static inline void wacom_schedule_work(struct wacom_wac *wacom_wac)
