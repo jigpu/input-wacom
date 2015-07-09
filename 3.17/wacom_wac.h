@@ -199,12 +199,10 @@ struct hid_data {
 };
 
 struct wacom_power_supply {
-	char bat_name[WACOM_NAME_MAX];
-	char ac_name[WACOM_NAME_MAX];
-	int battery_capacity;
-	int bat_charging;
-	int bat_connected;
-	int ps_connected;
+	char name[WACOM_NAME_MAX];
+	int capacity;
+	int charging;
+	int connected;
 };
 
 struct wacom_wac {
@@ -230,6 +228,7 @@ struct wacom_wac {
 	u8 bt_high_speed;
 	struct hid_data hid_data;
 	struct wacom_power_supply battery;
+	struct wacom_power_supply ac;
 };
 
 #endif
