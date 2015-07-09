@@ -977,7 +977,8 @@ static int wacom_battery_get_property(struct power_supply *psy,
 	struct wacom *wacom = power_supply_get_drvdata(psy);
 #else
 	struct wacom_power_supply *z = container_of(psy, struct wacom_power_supply, power_supply);
-	struct wacom *wacom = z->wacom;
+	struct wacom_wac *y = container_of(z, struct wacom_wac, battery);
+	struct wacom *wacom = container_of(y, struct wacom, wacom_wac);
 #endif
 	struct wacom_power_supply *battery = &wacom->wacom_wac.battery;
 	struct wacom_power_supply *ac = &wacom->wacom_wac.ac;
@@ -1020,7 +1021,8 @@ static int wacom_ac_get_property(struct power_supply *psy,
 	struct wacom *wacom = power_supply_get_drvdata(psy);
 #else
 	struct wacom_power_supply *z = container_of(psy, struct wacom_power_supply, power_supply);
-	struct wacom *wacom = z->wacom;
+	struct wacom_wac *y = container_of(z, struct wacom_wac, ac);
+	struct wacom *wacom = container_of(y, struct wacom, wacom_wac);
 #endif
 	struct wacom_power_supply *ac = &wacom->wacom_wac.ac;
 	int ret = 0;

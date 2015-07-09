@@ -201,7 +201,6 @@ struct hid_data {
 };
 
 struct wacom_power_supply {
-	struct wacom *wacom;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	struct power_supply *power_supply;
 	struct power_supply_desc desc;
