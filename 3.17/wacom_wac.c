@@ -54,7 +54,7 @@ static void wacom_notify_battery(struct wacom_wac *wacom_wac,
 	bool ps_connected)
 {
 	struct wacom *wacom = container_of(wacom_wac, struct wacom, wacom_wac);
-	struct wacom_battery *battery = &wacom_wac->battery;
+	struct wacom_power_supply *battery = &wacom_wac->battery;
 	bool changed = battery->battery_capacity != bat_capacity  ||
 		       battery->bat_charging     != bat_charging  ||
 		       battery->bat_connected    != bat_connected ||

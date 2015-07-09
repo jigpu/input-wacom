@@ -978,7 +978,7 @@ static int wacom_battery_get_property(struct power_supply *psy,
 #else
 	struct wacom *wacom = container_of(psy, struct wacom, battery);
 #endif
-	struct wacom_battery *battery = &wacom->wacom_wac.battery;
+	struct wacom_power_supply *battery = &wacom->wacom_wac.battery;
 	int ret = 0;
 
 	switch (psp) {
@@ -1019,7 +1019,7 @@ static int wacom_ac_get_property(struct power_supply *psy,
 #else
 	struct wacom *wacom = container_of(psy, struct wacom, ac);
 #endif
-	struct wacom_battery *battery = &wacom->wacom_wac.battery;
+	struct wacom_power_supply *battery = &wacom->wacom_wac.battery;
 	int ret = 0;
 
 	switch (psp) {
@@ -1045,7 +1045,7 @@ static int wacom_initialize_battery(struct wacom *wacom)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,1,0)
 	struct power_supply_config psy_cfg = { .drv_data = wacom, };
 #endif
-	struct wacom_battery *battery = &wacom->wacom_wac.battery;
+	struct wacom_power_supply *battery = &wacom->wacom_wac.battery;
 	unsigned long n;
 
 	if (wacom->wacom_wac.features.quirks & WACOM_QUIRK_BATTERY) {
