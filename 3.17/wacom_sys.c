@@ -982,22 +982,22 @@ static int wacom_battery_get_property(struct power_supply *psy,
 
 	switch (psp) {
 		case POWER_SUPPLY_PROP_PRESENT:
-			val->intval = wacom->wacom_wac.bat_connected;
+			val->intval = wacom->wacom_wac.battery.bat_connected;
 			break;
 		case POWER_SUPPLY_PROP_SCOPE:
 			val->intval = POWER_SUPPLY_SCOPE_DEVICE;
 			break;
 		case POWER_SUPPLY_PROP_CAPACITY:
 			val->intval =
-				wacom->wacom_wac.battery_capacity;
+				wacom->wacom_wac.battery.battery_capacity;
 			break;
 		case POWER_SUPPLY_PROP_STATUS:
-			if (wacom->wacom_wac.bat_charging)
+			if (wacom->wacom_wac.battery.bat_charging)
 				val->intval = POWER_SUPPLY_STATUS_CHARGING;
-			else if (wacom->wacom_wac.battery_capacity == 100 &&
-				    wacom->wacom_wac.ps_connected)
+			else if (wacom->wacom_wac.battery.battery_capacity == 100 &&
+				    wacom->wacom_wac.battery.ps_connected)
 				val->intval = POWER_SUPPLY_STATUS_FULL;
-			else if (wacom->wacom_wac.ps_connected)
+			else if (wacom->wacom_wac.battery.ps_connected)
 				val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
 			else
 				val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
@@ -1025,7 +1025,7 @@ static int wacom_ac_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_PRESENT:
 		/* fall through */
 	case POWER_SUPPLY_PROP_ONLINE:
-		val->intval = wacom->wacom_wac.ps_connected;
+		val->intval = wacom->wacom_wac.battery.ps_connected;
 		break;
 	case POWER_SUPPLY_PROP_SCOPE:
 		val->intval = POWER_SUPPLY_SCOPE_DEVICE;
@@ -1052,16 +1052,16 @@ static int wacom_initialize_battery(struct wacom *wacom)
 		WACOM_POWERSUPPLY_DESC(wacom->battery).properties = wacom_battery_props;
 		WACOM_POWERSUPPLY_DESC(wacom->battery).num_properties = ARRAY_SIZE(wacom_battery_props);
 		WACOM_POWERSUPPLY_DESC(wacom->battery).get_property = wacom_battery_get_property;
-		sprintf(wacom->wacom_wac.bat_name, "wacom_battery_%ld", n);
-		WACOM_POWERSUPPLY_DESC(wacom->battery).name = wacom->wacom_wac.bat_name;
+		sprintf(wacom->wacom_wac.battery.bat_name, "wacom_battery_%ld", n);
+		WACOM_POWERSUPPLY_DESC(wacom->battery).name = wacom->wacom_wac.battery.bat_name;
 		WACOM_POWERSUPPLY_DESC(wacom->battery).type = POWER_SUPPLY_TYPE_BATTERY;
 		WACOM_POWERSUPPLY_DESC(wacom->battery).use_for_apm = 0;
 
 		WACOM_POWERSUPPLY_DESC(wacom->ac).properties = wacom_ac_props;
 		WACOM_POWERSUPPLY_DESC(wacom->ac).num_properties = ARRAY_SIZE(wacom_ac_props);
 		WACOM_POWERSUPPLY_DESC(wacom->ac).get_property = wacom_ac_get_property;
-		sprintf(wacom->wacom_wac.ac_name, "wacom_ac_%ld", n);
-		WACOM_POWERSUPPLY_DESC(wacom->ac).name = wacom->wacom_wac.ac_name;
+		sprintf(wacom->wacom_wac.battery.ac_name, "wacom_ac_%ld", n);
+		WACOM_POWERSUPPLY_DESC(wacom->ac).name = wacom->wacom_wac.battery.ac_name;
 		WACOM_POWERSUPPLY_DESC(wacom->battery).type = POWER_SUPPLY_TYPE_MAINS;
 		WACOM_POWERSUPPLY_DESC(wacom->battery).use_for_apm = 0;
 

@@ -198,12 +198,19 @@ struct hid_data {
 	int num_received;
 };
 
+struct wacom_battery {
+	char bat_name[WACOM_NAME_MAX];
+	char ac_name[WACOM_NAME_MAX];
+	int battery_capacity;
+	int bat_charging;
+	int bat_connected;
+	int ps_connected;
+};
+
 struct wacom_wac {
 	char pen_name[WACOM_NAME_MAX];
 	char touch_name[WACOM_NAME_MAX];
 	char pad_name[WACOM_NAME_MAX];
-	char bat_name[WACOM_NAME_MAX];
-	char ac_name[WACOM_NAME_MAX];
 	unsigned char data[WACOM_PKGLEN_MAX];
 	int tool[2];
 	int id[2];
@@ -218,14 +225,11 @@ struct wacom_wac {
 	bool touch_registered;
 	bool pad_registered;
 	int pid;
-	int battery_capacity;
 	int num_contacts_left;
-	int bat_charging;
-	int bat_connected;
-	int ps_connected;
 	u8 bt_features;
 	u8 bt_high_speed;
 	struct hid_data hid_data;
+	struct wacom_battery battery;
 };
 
 #endif
