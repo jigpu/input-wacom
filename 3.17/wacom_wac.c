@@ -578,7 +578,7 @@ static int wacom_intuos_inout(struct wacom_wac *wacom)
 		return 1;
 
 	/* in Range while exiting */
-	if (((data[1] & 0xfe) == 0x20) && wacom->reporting_data) {
+	if (((data[1] & 0xfe) == 0x20) && wacom->pen->reporting_data) {
 		input_report_key(input, BTN_TOUCH, 0);
 		input_report_abs(input, ABS_PRESSURE, 0);
 		input_report_abs(input, ABS_DISTANCE, wacom->features.distance_max);
@@ -588,7 +588,7 @@ static int wacom_intuos_inout(struct wacom_wac *wacom)
 	/* Exit report */
 	if ((data[1] & 0xfe) == 0x80) {
 		wacom->shared->stylus_in_proximity = false;
-		wacom->reporting_data = false;
+		wacom->pen->reporting_data = false;
 
 		/* don't report exit if we don't know the ID */
 		if (!wacom->pen->tool[idx].id)
@@ -999,7 +999,7 @@ static int wacom_intuos_irq(struct wacom_wac *wacom)
 	input_report_abs(input, ABS_MISC, wacom->pen->tool[idx].id); /* report tool id */
 	input_report_key(input, wacom->pen->tool[idx].type, 1);
 	input_event(input, EV_MSC, MSC_SERIAL, wacom->pen->tool[idx].serial);
-	wacom->reporting_data = true;
+	wacom->pen->reporting_data = true;
 	return 1;
 }
 

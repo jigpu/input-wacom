@@ -224,12 +224,12 @@ struct wacom_input_device {
 	struct input_dev *input;
 	char name[WACOM_NAME_MAX];
 	bool registered;
+	bool reporting_data;
 	struct wacom_tool tool[2];
 };
 
 struct wacom_wac {
 	unsigned char data[WACOM_PKGLEN_MAX];
-	bool reporting_data;
 	struct wacom_features features;
 	struct wacom_shared *shared;
 	int pid;
