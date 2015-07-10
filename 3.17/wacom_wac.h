@@ -214,17 +214,21 @@ struct wacom_power_supply {
 	int connected;
 };
 
+struct wacom_tool {
+	int type;
+	int id;
+	int serial;
+};
+
 struct wacom_input_device {
 	struct input_dev *input;
 	char name[WACOM_NAME_MAX];
 	bool registered;
+	struct wacom_tool tool[2];
 };
 
 struct wacom_wac {
 	unsigned char data[WACOM_PKGLEN_MAX];
-	int tool[2];
-	int id[2];
-	__u32 serial[2];
 	bool reporting_data;
 	struct wacom_features features;
 	struct wacom_shared *shared;
