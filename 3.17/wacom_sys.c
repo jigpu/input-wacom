@@ -1241,27 +1241,24 @@ static struct wacom_input_device *wacom_allocate_input(struct wacom *wacom,
 
 static void wacom_clean_inputs(struct wacom *wacom)
 {
-	if (wacom->wacom_wac.pen->input) {
-		if (wacom->wacom_wac.pen->registered)
-			input_unregister_device(wacom->wacom_wac.pen->input);
+	struct wacom_input_device **dev;
+	struct wacom_input_device **devices[] = {
+		&wacom->wacom_wac.pen,
+		&wacom->wacom_wac.touch,
+		&wacom->wacom_wac.pad,
+		NULL
+	};
+
+	for (dev = devices[0]; dev; dev++) {
+		if (!*dev)
+			continue;
+		else if ((*dev)->registered)
+			input_unregister_device((*dev)->input);
 		else
-			input_free_device(wacom->wacom_wac.pen->input);
+			input_free_device((*dev)->input);
 	}
-	if (wacom->wacom_wac.touch->input) {
-		if (wacom->wacom_wac.touch->registered)
-			input_unregister_device(wacom->wacom_wac.touch->input);
-		else
-			input_free_device(wacom->wacom_wac.touch->input);
-	}
-	if (wacom->wacom_wac.pad->input) {
-		if (wacom->wacom_wac.pad->registered)
-			input_unregister_device(wacom->wacom_wac.pad->input);
-		else
-			input_free_device(wacom->wacom_wac.pad->input);
-	}
-	wacom->wacom_wac.pen->input = NULL;
-	wacom->wacom_wac.touch->input = NULL;
-	wacom->wacom_wac.pad->input = NULL;
+	kfree(*dev);
+	*dev = NULL;
 	wacom_destroy_leds(wacom);
 }
 
@@ -1281,75 +1278,41 @@ static int wacom_allocate_inputs(struct wacom *wacom)
 
 static int wacom_register_inputs(struct wacom *wacom)
 {
-	struct input_dev *pen_input_dev, *touch_input_dev, *pad_input_dev;
-	struct wacom_wac *wacom_wac = &(wacom->wacom_wac);
-	int error = 0;
+	int error;
+	struct wacom_input_device **dev;
+	struct wacom_input_device **devices[] = {
+		&wacom->wacom_wac.pen,
+		&wacom->wacom_wac.touch,
+		&wacom->wacom_wac.pad,
+		NULL
+	};
 
-	pen_input_dev = wacom_wac->pen->input;
-	touch_input_dev = wacom_wac->touch->input;
-	pad_input_dev = wacom_wac->pad->input;
+	for (dev = devices[0]; dev; dev++) {
+		error = -EINVAL;
+		if ((*dev)->devicetype & WACOM_DEVICETYPE_PEN)
+			error = wacom_setup_pen_input_capabilities((*dev)->input, &wacom->wacom_wac);
+		else if ((*dev)->devicetype & WACOM_DEVICETYPE_TOUCH)
+			error = wacom_setup_touch_input_capabilities((*dev)->input, &wacom->wacom_wac);
+		else if ((*dev)->devicetype & WACOM_DEVICETYPE_PAD)
+			error = wacom_setup_pad_input_capabilities((*dev)->input, &wacom->wacom_wac);
 
-	if (!pen_input_dev || !touch_input_dev || !pad_input_dev)
-		return -EINVAL;
-
-	error = wacom_setup_pen_input_capabilities(pen_input_dev, wacom_wac);
-	if (error) {
-		/* no pen in use on this interface */
-		input_free_device(pen_input_dev);
-		wacom_wac->pen->input = NULL;
-		pen_input_dev = NULL;
-	} else {
-		error = input_register_device(pen_input_dev);
-		if (error)
-			goto fail_register_pen_input;
-		wacom_wac->pen->registered = true;
-	}
-
-	error = wacom_setup_touch_input_capabilities(touch_input_dev, wacom_wac);
-	if (error) {
-		/* no touch in use on this interface */
-		input_free_device(touch_input_dev);
-		wacom_wac->touch->input = NULL;
-		touch_input_dev = NULL;
-	} else {
-		error = input_register_device(touch_input_dev);
-		if (error)
-			goto fail_register_touch_input;
-		wacom_wac->touch->registered = true;
-	}
-
-	error = wacom_setup_pad_input_capabilities(pad_input_dev, wacom_wac);
-	if (error) {
-		/* no pad in use on this interface */
-		input_free_device(pad_input_dev);
-		wacom_wac->pad->input = NULL;
-		pad_input_dev = NULL;
-	} else {
-		error = input_register_device(pad_input_dev);
-		if (error)
-			goto fail_register_pad_input;
-		wacom_wac->pad->registered = true;
-
-		error = wacom_initialize_leds(wacom);
-		if (error)
-			goto fail_leds;
+		if (error) {
+			/* device not capable of being set up */
+			input_free_device((*dev)->input);
+			kfree(*dev);
+			*dev = NULL;
+		}
+		else {
+			error = input_register_device((*dev)->input);
+			if (error)
+				goto err;
+			(*dev)->registered = true;
+		}
 	}
 
 	return 0;
-
-fail_leds:
-	input_unregister_device(pad_input_dev);
-	pad_input_dev = NULL;
-	wacom_wac->pad->registered = false;
-fail_register_pad_input:
-	input_unregister_device(touch_input_dev);
-	wacom_wac->touch->input = NULL;
-	wacom_wac->touch->registered = false;
-fail_register_touch_input:
-	input_unregister_device(pen_input_dev);
-	wacom_wac->pen->input = NULL;
-	wacom_wac->pen->registered = false;
-fail_register_pen_input:
+err:
+	wacom_clean_inputs(wacom);
 	return error;
 }
 
