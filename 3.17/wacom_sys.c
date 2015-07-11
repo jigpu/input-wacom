@@ -1201,7 +1201,8 @@ static void wacom_update_name(struct wacom *wacom, struct wacom_input_device *de
 		snprintf(dev->name, sizeof(dev->name), "%s Pad", name);
 }
 
-static struct wacom_input_device *wacom_allocate_input(struct wacom *wacom)
+static struct wacom_input_device *wacom_allocate_input(struct wacom *wacom,
+		int devicetype)
 {
 	struct wacom_input_device *wacom_input_dev;
 	struct input_dev *input_dev;
@@ -1231,6 +1232,10 @@ static struct wacom_input_device *wacom_allocate_input(struct wacom *wacom)
 	input_set_drvdata(input_dev, wacom);
 
 	wacom_input_dev->input = input_dev;
+	wacom_input_dev->devicetype = devicetype;
+
+	wacom_update_name(wacom, wacom_input_dev);
+
 	return wacom_input_dev;
 }
 
@@ -1264,21 +1269,13 @@ static int wacom_allocate_inputs(struct wacom *wacom)
 {
 	struct wacom_wac *wacom_wac = &(wacom->wacom_wac);
 
-	wacom_wac->pen = wacom_allocate_input(wacom);
-	wacom_wac->touch = wacom_allocate_input(wacom);
-	wacom_wac->pad = wacom_allocate_input(wacom);
+	wacom_wac->pen = wacom_allocate_input(wacom, WACOM_DEVICETYPE_PEN);
+	wacom_wac->touch = wacom_allocate_input(wacom, WACOM_DEVICETYPE_TOUCH);
+	wacom_wac->pad = wacom_allocate_input(wacom, WACOM_DEVICETYPE_PAD);
 	if (!wacom_wac->pen || !wacom_wac->touch || !wacom_wac->pad) {
 		wacom_clean_inputs(wacom);
 		return -ENOMEM;
 	}
-	wacom_wac->pen->devicetype = WACOM_DEVICETYPE_PEN;
-	wacom_wac->touch->devicetype = WACOM_DEVICETYPE_TOUCH;
-	wacom_wac->pad->devicetype = WACOM_DEVICETYPE_PAD;
-
-	wacom_update_name(wacom, wacom_wac->pen);
-	wacom_update_name(wacom, wacom_wac->touch);
-	wacom_update_name(wacom, wacom_wac->pad);
-	
 	return 0;
 }
 
