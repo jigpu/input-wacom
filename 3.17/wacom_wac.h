@@ -222,6 +222,8 @@ struct wacom_tool {
 
 struct wacom_input_device {
 	struct input_dev *input;
+
+	int devicetype;
 	char name[WACOM_NAME_MAX];
 	bool registered;
 	bool reporting_data;

@@ -1229,9 +1229,11 @@ static int wacom_allocate_inputs(struct wacom *wacom)
 		wacom_clean_inputs(wacom);
 		return -ENOMEM;
 	}
+	wacom_wac->pen->devicetype = WACOM_DEVICETYPE_PEN;
+	wacom_wac->touch->devicetype = WACOM_DEVICETYPE_TOUCH;
+	wacom_wac->pad->devicetype = WACOM_DEVICETYPE_PAD;
 	return 0;
 }
-
 
 static int wacom_register_inputs(struct wacom *wacom)
 {
