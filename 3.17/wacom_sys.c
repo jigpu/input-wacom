@@ -1159,6 +1159,48 @@ static ssize_t wacom_store_speed(struct device *dev,
 static DEVICE_ATTR(speed, DEV_ATTR_RW_PERM,
 		wacom_show_speed, wacom_store_speed);
 
+static void wacom_update_name(struct wacom *wacom, struct wacom_input_device *dev)
+{
+	struct wacom_wac *wacom_wac = &wacom->wacom_wac;
+	struct wacom_features *features = &wacom_wac->features;
+	char name[WACOM_NAME_MAX];
+
+	/* Generic devices name unspecified */
+	if ((features->type == HID_GENERIC) && !strcmp("Wacom HID", features->name)) {
+		if (strstr(wacom->hdev->name, "Wacom") ||
+		    strstr(wacom->hdev->name, "wacom") ||
+		    strstr(wacom->hdev->name, "WACOM")) {
+			/* name is in HID descriptor, use it */
+			strlcpy(name, wacom->hdev->name, sizeof(name));
+
+			/* strip out excess whitespaces */
+			while (1) {
+				char *gap = strstr(name, "  ");
+				if (gap == NULL)
+					break;
+				/* shift everything including the terminator */
+				memmove(gap, gap+1, strlen(gap));
+			}
+			/* get rid of trailing whitespace */
+			if (name[strlen(name)-1] == ' ')
+				name[strlen(name)-1] = '\0';
+		} else {
+			/* no meaningful name retrieved. use product ID */
+			snprintf(name, sizeof(name),
+				 "%s %X", features->name, wacom->hdev->product);
+		}
+	} else {
+		strlcpy(name, features->name, sizeof(name));
+	}
+
+	if (dev->devicetype == WACOM_DEVICETYPE_PEN)
+		snprintf(dev->name, sizeof(dev->name), "%s Pen", name);
+	else if (dev->devicetype == WACOM_DEVICETYPE_TOUCH)
+		snprintf(dev->name, sizeof(dev->name), "%s Finger", name);
+	else if (dev->devicetype == WACOM_DEVICETYPE_PAD)
+		snprintf(dev->name, sizeof(dev->name), "%s Pad", name);
+}
+
 static struct wacom_input_device *wacom_allocate_input(struct wacom *wacom)
 {
 	struct wacom_input_device *wacom_input_dev;
@@ -1232,6 +1274,11 @@ static int wacom_allocate_inputs(struct wacom *wacom)
 	wacom_wac->pen->devicetype = WACOM_DEVICETYPE_PEN;
 	wacom_wac->touch->devicetype = WACOM_DEVICETYPE_TOUCH;
 	wacom_wac->pad->devicetype = WACOM_DEVICETYPE_PAD;
+
+	wacom_update_name(wacom, wacom_wac->pen);
+	wacom_update_name(wacom, wacom_wac->touch);
+	wacom_update_name(wacom, wacom_wac->pad);
+	
 	return 0;
 }
 
@@ -1495,49 +1542,6 @@ static size_t wacom_compute_pktlen(struct hid_device *hdev)
 	return size;
 }
 
-static void wacom_update_name(struct wacom *wacom)
-{
-	struct wacom_wac *wacom_wac = &wacom->wacom_wac;
-	struct wacom_features *features = &wacom_wac->features;
-	char name[WACOM_NAME_MAX];
-
-	/* Generic devices name unspecified */
-	if ((features->type == HID_GENERIC) && !strcmp("Wacom HID", features->name)) {
-		if (strstr(wacom->hdev->name, "Wacom") ||
-		    strstr(wacom->hdev->name, "wacom") ||
-		    strstr(wacom->hdev->name, "WACOM")) {
-			/* name is in HID descriptor, use it */
-			strlcpy(name, wacom->hdev->name, sizeof(name));
-
-			/* strip out excess whitespaces */
-			while (1) {
-				char *gap = strstr(name, "  ");
-				if (gap == NULL)
-					break;
-				/* shift everything including the terminator */
-				memmove(gap, gap+1, strlen(gap));
-			}
-			/* get rid of trailing whitespace */
-			if (name[strlen(name)-1] == ' ')
-				name[strlen(name)-1] = '\0';
-		} else {
-			/* no meaningful name retrieved. use product ID */
-			snprintf(name, sizeof(name),
-				 "%s %X", features->name, wacom->hdev->product);
-		}
-	} else {
-		strlcpy(name, features->name, sizeof(name));
-	}
-
-	/* Append the device type to the name */
-	snprintf(wacom_wac->pen->name, sizeof(wacom_wac->pen->name),
-		"%s Pen", name);
-	snprintf(wacom_wac->touch->name, sizeof(wacom_wac->touch->name),
-		"%s Finger", name);
-	snprintf(wacom_wac->pad->name, sizeof(wacom_wac->pad->name),
-		"%s Pad", name);
-}
-
 static int wacom_probe(struct hid_device *hdev,
 		const struct hid_device_id *id)
 {
@@ -1631,8 +1635,6 @@ static int wacom_probe(struct hid_device *hdev,
 	}
 
 	wacom_calculate_res(features);
-
-	wacom_update_name(wacom);
 
 	error = wacom_add_shared_data(hdev);
 	if (error)
