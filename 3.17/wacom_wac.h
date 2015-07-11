@@ -233,9 +233,9 @@ struct wacom_wac {
 	u8 bt_features;
 	u8 bt_high_speed;
 	struct hid_data hid_data;
-	struct wacom_input_device pen;
-	struct wacom_input_device touch;
-	struct wacom_input_device pad;
+	struct wacom_input_device *pen;
+	struct wacom_input_device *touch;
+	struct wacom_input_device *pad;
 	struct wacom_power_supply battery;
 	struct wacom_power_supply ac;
 };
