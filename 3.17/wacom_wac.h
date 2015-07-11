@@ -214,10 +214,13 @@ struct wacom_power_supply {
 	int connected;
 };
 
+struct wacom_input_device {
+	struct input_dev *input;
+	char name[WACOM_NAME_MAX];
+	bool registered;
+};
+
 struct wacom_wac {
-	char pen_name[WACOM_NAME_MAX];
-	char touch_name[WACOM_NAME_MAX];
-	char pad_name[WACOM_NAME_MAX];
 	unsigned char data[WACOM_PKGLEN_MAX];
 	int tool[2];
 	int id[2];
@@ -225,17 +228,14 @@ struct wacom_wac {
 	bool reporting_data;
 	struct wacom_features features;
 	struct wacom_shared *shared;
-	struct input_dev *pen_input;
-	struct input_dev *touch_input;
-	struct input_dev *pad_input;
-	bool pen_registered;
-	bool touch_registered;
-	bool pad_registered;
 	int pid;
 	int num_contacts_left;
 	u8 bt_features;
 	u8 bt_high_speed;
 	struct hid_data hid_data;
+	struct wacom_input_device pen;
+	struct wacom_input_device touch;
+	struct wacom_input_device pad;
 	struct wacom_power_supply battery;
 	struct wacom_power_supply ac;
 };
