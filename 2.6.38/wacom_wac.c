@@ -494,6 +494,12 @@ static int wacom_intuos_inout(struct wacom_wac *wacom)
 			wacom->tool[idx] = BTN_TOOL_PEN;
 			break;
 		}
+
+		/* HACK: Intuos2 doesn't send serial when hotplugged
+		 * anymore (broken sometime between 2.6.35 and 2.6.38)
+		 */
+		if (!wacom->serial[idx])
+			wacom->serial[idx] = wacom->tool[idx];
 		return 1;
 	}
 
