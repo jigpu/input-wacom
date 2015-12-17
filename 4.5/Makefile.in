@@ -4,15 +4,25 @@ ifneq ($(KERNELRELEASE),)
 # Do NOT indent stuff in this part! It has to be like this to make the
 # $(error ... ) stuff work
 
-ifneq ($(CONFIG_HID_WACOM),y)
 WCM_VERSION := $(shell cd $(KBUILD_EXTMOD)/.. && ./git-version-gen)
 ccflags-y := -DWACOM_VERSION_SUFFIX=\"-$(WCM_VERSION)\" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers
 wacom-objs := wacom_wac.o wacom_sys.o
+
+ifneq ($(CONFIG_HID_WACOM),y)
 obj-m += wacom.o
+else
+$(warning You requested to build wacom with configure, but wacom is configured as built-in in your kernel config)
+endif # CONFIG_HID_WACOM
+
+ifneq ($(CONFIG_TOUCHSCREEN_WACOM_W8001),y)
 obj-m += wacom_w8001.o
 else
-$(error You requested to build wacom with configure, but wacom is configured as built-in in your kernel config)
-endif # CONFIG_HID_WACOM
+$(warning You requested to build wacom_w8001 with configure, but wacom is configured as built-in in your kernel config)
+endif # CONFIG_TOUCHSCREEN_WACOM_W8001
+
+ifeq ($(strip $(obj-m)),)
+$(error No modules are able to be built)
+endif
 
 else  # We were called from command line
 PWD  := $(shell pwd)
