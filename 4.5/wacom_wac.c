@@ -72,6 +72,70 @@ static void __wacom_notify_battery(struct wacom_battery *battery,
 	}
 }
 
+static int wacom_scale_touch_width_height(int value, struct input_dev *input, const struct hid_field *field, unsigned usage)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+	__s32 numerator;
+	__s32 denominator;
+
+	if (!hidinput_calc_abs_res_rational(field, usage, &numerator, &denominator))
+		return 0;
+
+	denominator = value * input_abs_get_res(input, ABS_MT_POSITION_X) * denominator;
+	if (denominator < value)
+		return 0;
+
+	return DIV_ROUND_CLOSEST(denominator, numerator);
+#else
+	__s32 unit_exponent = field->unit_exponent;
+	__s32 logical_extents = field->logical_maximum - field->logical_minimum;
+	__s32 physical_extents = field->physical_maximum - field->physical_minimum;
+	__s32 prev;
+	unsigned code;
+
+	switch (usage) {
+	case HID_DG_WIDTH:  code = ABS_MT_POSITION_X; break;
+	case HID_DG_HEIGHT: code = ABS_MT_POSITION_Y; break;
+	default:            return 0;
+	}
+
+	if (field->unit == 0x11) {
+		unit_exponent += 1;
+	} else if (field->unit == 0x13) {
+		prev = physical_extents;
+		physical_extents *= 254;
+		if (physical_extents < prev)
+			return 0;
+	}
+
+	for (; unit_exponent < 0; unit_exponent++) {
+		prev = logical_extents;
+		logical_extents *= 10;
+		if (logical_extents < prev)
+			return 0;
+	}
+	for (; unit_exponent > 0; unit_exponent--) {
+		prev = physical_extents;
+		physical_extents *= 10;
+		if (physical_extents < prev)
+			return 0;
+	}
+
+
+	prev = value;
+	value *= input_abs_get_res(input, ABS_MT_POSITION_X);
+	if (value < prev)
+		return 0;
+
+	prev = value;
+	value *= physical_extents;
+	if (value < prev)
+		return 0;
+
+	return DIV_ROUND_CLOSEST(value, logical_extents);
+#endif
+}
+
 static void wacom_notify_battery(struct wacom_wac *wacom_wac,
 	int bat_capacity, bool bat_charging, bool bat_connected,
 	bool ps_connected)
@@ -1441,6 +1505,16 @@ static void wacom_map_usage(struct input_dev *input, struct hid_usage *usage,
 	int fmin = field->logical_minimum;
 	int fmax = field->logical_maximum;
 
+	if (type == EV_ABS && (code == ABS_MT_TOUCH_MAJOR || code == ABS_MT_TOUCH_MINOR)) {
+		/*
+		 * Kernel specifies that major/minor must be in surface
+		 * units, so copy its axis parameters
+		 */
+		input_set_abs_params(input, code, 0, features->x_max, 0, 0);
+		input_abs_set_res(input, code, input_abs_get_res(input, ABS_MT_POSITION_X));
+		return;
+	}
+
 	usage->type = type;
 	usage->code = code;
 
@@ -1658,10 +1732,10 @@ static int wacom_wac_finger_event(struct hid_device *hdev,
 		wacom_wac->hid_data.y = value;
 		break;
 	case HID_DG_WIDTH:
-		wacom_wac->hid_data.width = value;
+		wacom_wac->hid_data.width = wacom_scale_touch_width_height(value, wacom_wac->touch_input, field, equivalent_usage);
 		break;
 	case HID_DG_HEIGHT:
-		wacom_wac->hid_data.height = value;
+		wacom_wac->hid_data.height = wacom_scale_touch_width_height(value, wacom_wac->touch_input, field, equivalent_usage);
 		break;
 	case HID_DG_CONTACTID:
 		wacom_wac->hid_data.id = value;
