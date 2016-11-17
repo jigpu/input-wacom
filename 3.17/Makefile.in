@@ -5,6 +5,7 @@ ifneq ($(KERNELRELEASE),)
 # $(error ... ) stuff work
 
 ifneq ($(CONFIG_HID_WACOM),y)
+LINUXINCLUDE := $(patsubst -I%,-isystem%,$(LINUXINCLUDE))
 WCM_VERSION := $(shell cd $(KBUILD_EXTMOD)/.. && ./git-version-gen)
 ccflags-y := -DWACOM_VERSION_SUFFIX=\"-$(WCM_VERSION)\"
 ccflags-y += @WARN_CFLAGS@
