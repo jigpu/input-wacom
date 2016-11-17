@@ -9,6 +9,8 @@ AM_INIT_AUTOMAKE([dist-bzip2 no-dist-gzip])
 AM_MAINTAINER_MODE
 
 AC_PROG_CC
+WARN_CFLAGS="-Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
+AC_SUBST(WARN_CFLAGS)
 
 dnl =======================================================
 dnl Check if we should be compiling for linux
