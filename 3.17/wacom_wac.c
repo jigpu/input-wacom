@@ -872,7 +872,7 @@ static void wacom_remote_status_irq(struct wacom_wac *wacom_wac, size_t len)
 
 	for (i = 0; i < WACOM_MAX_REMOTES; i++) {
 		int j = i * 6;
-		int serial = (data[j+6] << 16) + (data[j+5] << 8) + data[j+4];
+		__u32 serial = (data[j+6] << 16) + (data[j+5] << 8) + data[j+4];
 		bool connected = data[j+2];
 
 		remote_data.remote[i].serial = serial;
@@ -1693,11 +1693,11 @@ static void wacom_wac_finger_pre_report(struct hid_device *hdev,
 	struct wacom *wacom = hid_get_drvdata(hdev);
 	struct wacom_wac *wacom_wac = &wacom->wacom_wac;
 	struct hid_data* hid_data = &wacom_wac->hid_data;
-	int i;
+	unsigned i;
 
 	for (i = 0; i < report->maxfield; i++) {
 		struct hid_field *field = report->field[i];
-		int j;
+		unsigned j;
 
 		for (j = 0; j < field->maxusage; j++) {
 			struct hid_usage *usage = &field->usage[j];
@@ -1795,7 +1795,7 @@ int wacom_wac_event(struct hid_device *hdev, struct hid_field *field,
 
 static void wacom_report_events(struct hid_device *hdev, struct hid_report *report)
 {
-	int r;
+	unsigned r;
 
 	for (r = 0; r < report->maxfield; r++) {
 		struct hid_field *field;
@@ -2149,7 +2149,7 @@ static int wacom_wireless_irq(struct wacom_wac *wacom, size_t len)
 
 	connected = data[1] & 0x01;
 	if (connected) {
-		int pid, battery, charging;
+		__u32 pid, battery, charging;
 
 		if ((wacom->shared->type == INTUOSHT ||
 		    wacom->shared->type == INTUOSHT2) &&

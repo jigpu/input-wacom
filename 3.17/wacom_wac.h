@@ -185,7 +185,7 @@ struct wacom_features {
 	int oPid;
 	int pktlen;
 	bool check_for_hid_type;
-	int hid_type;
+	unsigned hid_type;
 };
 
 struct wacom_shared {
@@ -211,10 +211,10 @@ struct hid_data {
 	int width;
 	int height;
 	int id;
-	int cc_report;
+	unsigned cc_report;
 	int cc_index;
 	int cc_value_index;
-	int last_slot_field;
+	unsigned last_slot_field;
 	int num_expected;
 	int num_received;
 };
@@ -241,7 +241,7 @@ struct wacom_wac {
 	struct input_dev *pen_input;
 	struct input_dev *touch_input;
 	struct input_dev *pad_input;
-	int pid;
+	__u32 pid;
 	int num_contacts_left;
 	u8 bt_features;
 	u8 bt_high_speed;

@@ -293,7 +293,7 @@ static void wacom_parse_hid(struct hid_device *hdev,
 {
 	struct hid_report_enum *rep_enum;
 	struct hid_report *hreport;
-	int i, j;
+	unsigned i, j;
 
 	/* check features first */
 	rep_enum = &hdev->report_enum[HID_FEATURE_REPORT];
