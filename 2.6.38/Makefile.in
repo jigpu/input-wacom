@@ -7,17 +7,14 @@ ifneq ($(KERNELRELEASE),)
 WCM_VERSION := $(shell cd $(KBUILD_EXTMOD)/.. && ./git-version-gen)
 ccflags-y := -DWACOM_VERSION_SUFFIX=\"-$(WCM_VERSION)\" -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers $(EXTRA_CFLAGS)
 wacom-objs := wacom_wac.o wacom_sys.o
+obj-m += wacom.o wacom_w8001.o
 
-ifneq ($(CONFIG_USB_WACOM),y)
-obj-m += wacom.o
-else
-$(warning You requested to build wacom with configure, but wacom is configured as built-in in your kernel config)
+ifneq ($(CONFIG_USB_WACOM),m)
+$(warning You requested to build wacom with configure, but CONFIG_USB_WACOM is configured as '$(CONFIG_USB_WACOM)' instead of 'm' in your kernel config)
 endif # CONFIG_USB_WACOM
 
-ifneq ($(CONFIG_TOUCHSCREEN_WACOM_W8001),y)
-obj-m += wacom_w8001.o
-else
-$(warning You requested to build wacom_w8001 with configure, but wacom is configured as built-in in your kernel config)
+ifneq ($(CONFIG_TOUCHSCREEN_WACOM_W8001),m)
+$(warning You requested to build wacom_w8001 with configure, but CONFIG_TOUCHSCREEN_WACOM_W8001 is configured as '$(CONFIG_TOUCHSCREEN_WACOM_W8001)' instead of 'm' in your kernel config)
 endif # CONFIG_TOUCHSCREEN_WACOM_W8001
 
 else  # We were called from command line
