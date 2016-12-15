@@ -2484,7 +2484,7 @@ static const struct wacom_features wacom_features_0xE6 =
 	  0, TABLETPC2FG, WACOM_INTUOS_RES, WACOM_INTUOS_RES,
 	  .touch_max = 2 };
 static const struct wacom_features wacom_features_0xEC =
-	{ "Wacom ISDv4 EC",       WACOM_PKGLEN_GRAPHIRE,  25710, 14500,  255,
+	{ "Wacom ISDv4 EC",       WACOM_PKGLEN_GRAPHIRE,  27748, 15652, 1023,
 	  0, TABLETPC,    WACOM_INTUOS_RES, WACOM_INTUOS_RES };
 static const struct wacom_features wacom_features_0xED =
 	{ "Wacom ISDv4 ED",       WACOM_PKGLEN_GRAPHIRE,  26202, 16325,  255,
