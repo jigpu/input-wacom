@@ -2071,6 +2071,9 @@ static const struct wacom_features wacom_features_0x38 =
 static const struct wacom_features wacom_features_0x39 =
 	{ "Wacom DTU710",         WACOM_PKGLEN_GRAPHIRE,  34080, 27660,  511,
 	  0, PL, WACOM_PL_RES, WACOM_PL_RES };
+static const struct wacom_features wacom_features_0x3a =
+	{ "Wacom DTI520",         WACOM_PKGLEN_GRAPHIRE,   6082,  4562,  511,
+	  0, PL, WACOM_PL_RES, WACOM_PL_RES };
 static const struct wacom_features wacom_features_0xC4 =
 	{ "Wacom DTF521",         WACOM_PKGLEN_GRAPHIRE,   6282,  4762,  511,
 	  0, PL, WACOM_PL_RES, WACOM_PL_RES };
@@ -2403,6 +2406,7 @@ const struct usb_device_id wacom_ids[] = {
 	{ USB_DEVICE_WACOM(0x37) },
 	{ USB_DEVICE_WACOM(0x38) },
 	{ USB_DEVICE_WACOM(0x39) },
+	{ USB_DEVICE_WACOM(0x3a) },
 	{ USB_DEVICE_WACOM(0xC4) },
 	{ USB_DEVICE_WACOM(0xC0) },
 	{ USB_DEVICE_WACOM(0xC2) },
