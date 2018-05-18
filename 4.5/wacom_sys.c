@@ -569,8 +569,7 @@ static int wacom_set_device_mode(struct hid_device *hdev,
 		if (error >= 0)
 			error = wacom_get_report(hdev, HID_FEATURE_REPORT,
 			                         rep_data, length, 1);
-	} while (error >= 0 &&
-		 rep_data[1] != wacom_wac->mode_report &&
+	} while ((error < 0 || rep_data[1] != wacom_wac->mode_report) &&
 		 limit++ < WAC_MSG_RETRIES);
 
 	kfree(rep_data);
