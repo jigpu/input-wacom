@@ -2702,8 +2702,11 @@ static int wacom_probe(struct hid_device *hdev,
 	struct wacom_features *features;
 	int error;
 
-	if (!id->driver_data)
+	printk("entering wacom_probe\n");
+	if (!id->driver_data) {
+		hid_err(hdev, "missing driver data\n");
 		return -EINVAL;
+	}
 
 	hdev->quirks |= HID_QUIRK_NO_INIT_REPORTS;
 
@@ -2711,8 +2714,10 @@ static int wacom_probe(struct hid_device *hdev,
 	hdev->quirks &= ~HID_QUIRK_NOGET;
 
 	wacom = devm_kzalloc(&hdev->dev, sizeof(struct wacom), GFP_KERNEL);
-	if (!wacom)
+	if (!wacom) {
+		hid_err(hdev, "unable to allocate wacom struct\n");
 		return -ENOMEM;
+	}
 
 	hid_set_drvdata(hdev, wacom);
 	wacom->hdev = hdev;
@@ -2722,13 +2727,16 @@ static int wacom_probe(struct hid_device *hdev,
 	features = &wacom_wac->features;
 
 	if (features->check_for_hid_type && features->hid_type != hdev->type) {
+		hid_err(hdev, "device has wrong hid type\n");
 		error = -ENODEV;
 		goto fail;
 	}
 
 	error = kfifo_alloc(&wacom_wac->pen_fifo, WACOM_PKGLEN_MAX, GFP_KERNEL);
-	if (error)
+	if (error) {
+		hid_err(hdev, "unable to allocate pen fifo\n");
 		goto fail;
+	}
 
 	wacom_wac->hid_data.inputmode = -1;
 	wacom_wac->mode_report = -1;
@@ -2750,8 +2758,10 @@ static int wacom_probe(struct hid_device *hdev,
 	}
 
 	error = wacom_parse_and_register(wacom, false);
-	if (error)
+	if (error) {
+		hid_err(hdev, "unable to parse or register device\n");
 		goto fail;
+	}
 
 	if (hdev->bus == BUS_BLUETOOTH) {
 		error = device_create_file(&hdev->dev, &dev_attr_speed);
@@ -2761,9 +2771,11 @@ static int wacom_probe(struct hid_device *hdev,
 				 error);
 	}
 
+	printk("exiting wacom_probe normally\n");
 	return 0;
 
 fail:
+	printk("exiting wacom_probe due to error\n");
 	hid_set_drvdata(hdev, NULL);
 	return error;
 }
