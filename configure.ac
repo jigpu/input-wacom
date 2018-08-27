@@ -228,7 +228,7 @@ else
 fi
 
 dnl overwrite for RHEL distribution
-if test "$RHEL7_RELEASE" -ge "4"; then
+if test "$RHEL7_RELEASE" -ge "1"; then
         WCM_KERNEL_VER="3.17"
 fi
 
