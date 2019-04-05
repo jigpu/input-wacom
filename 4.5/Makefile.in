@@ -25,6 +25,7 @@ WCM_KERNEL_VER := @WCM_KERNEL_VER@
 MODSIGN_HASHALGO := @MODSIGN_HASHALGO@
 MODSIGN_PRIVFILE := @MODSIGN_PRIVFILE@
 MODSIGN_CERTFILE := @MODSIGN_CERTFILE@
+MODSIGN_COMMAND := $(WCM_KERNEL_DIR)/scripts/sign-file "$(MODSIGN_HASHALGO)" "$(MODSIGN_PRIVFILE)" "$(MODSIGN_CERTFILE)"
 
 all:
 	@echo '    Building input-wacom drivers for $(WCM_KERNEL_VER) kernel.'
@@ -34,17 +35,11 @@ clean:
 	$(MAKE) -C $(WCM_KERNEL_DIR) M=$(PWD) clean
 
 signature: all
-	if test -n "$(MODSIGN_HASHALGO)" -a -n "$(MODSIGN_PRIVFILE)" -a -n "$(MODSIGN_CERTFILE)"; then \
-	    $(WCM_KERNEL_DIR)/scripts/sign-file "$(MODSIGN_HASHALGO)" "$(MODSIGN_PRIVFILE)" "$(MODSIGN_CERTFILE)" wacom.ko; \
-	    $(WCM_KERNEL_DIR)/scripts/sign-file "$(MODSIGN_HASHALGO)" "$(MODSIGN_PRIVFILE)" "$(MODSIGN_CERTFILE)" wacom_w8001.ko; \
-	fi
+	$(MODSIGN_COMMAND) wacom.ko
+	$(MODSIGN_COMMAND) wacom_w8001.ko
 
-install modules_install: signature
-# Setting mod_sign_cmd='true' disables the kernel's built-in signature
-# generation since we're handling it oursleves. We could arguably instead
-# set the command to invoke sign-file exactly how we want, but this is
-# a bit more understandable...
-	$(MAKE) -C $(WCM_KERNEL_DIR) M=$(PWD) modules_install mod_sign_cmd='true'
+install modules_install:
+	$(MAKE) -C $(WCM_KERNEL_DIR) M=$(PWD) modules_install mod_sign_cmd='$(MODSIGN_COMMAND)'
 	mkdir -p /etc/depmod.d
 	echo "override wacom * extra" > /etc/depmod.d/input-wacom.conf
 	PATH="$(PATH):/bin:/sbin" depmod -a $(MODUTS)
