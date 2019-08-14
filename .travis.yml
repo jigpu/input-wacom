@@ -17,7 +17,7 @@ env:
   - KERNEL="linux-3.3"      # Conditional 2.6.38
   - KERNEL="linux-2.6.35"   # Conditional 2.6.32
 
-dist: trusty
+dist: bionic
 sudo: false
 
 addons:
@@ -32,10 +32,12 @@ install:
   - mkdir ${KERNELDIR}
   - curl ${URL} | tar xJC ${KERNELDIR}
   - if [[ ! -f ${KERNELDIR}/${KERNEL}/include/linux/compiler-gcc5.h ]]; then echo '#include <linux/compiler-gcc4.h>' > ${KERNELDIR}/${KERNEL}/include/linux/compiler-gcc5.h; fi
-  - make -C ${KERNELDIR}/${KERNEL} defconfig prepare modules_prepare
+  - if [[ ! -f ${KERNELDIR}/${KERNEL}/include/linux/compiler-gcc6.h ]]; then echo '#include <linux/compiler-gcc5.h>' > ${KERNELDIR}/${KERNEL}/include/linux/compiler-gcc6.h; fi
+  - if [[ ! -f ${KERNELDIR}/${KERNEL}/include/linux/compiler-gcc7.h ]]; then echo '#include <linux/compiler-gcc6.h>' > ${KERNELDIR}/${KERNEL}/include/linux/compiler-gcc7.h; fi
+  - make -C ${KERNELDIR}/${KERNEL} EXTRA_CFLAGS="-fno-pie" defconfig prepare modules_prepare
 
 script:
-  - ./autogen.sh --with-kernel=${KERNELDIR}/${KERNEL} && make EXTRA_CFLAGS="-Werror -Wno-type-limits -Wno-unused-function -isystem ${KERNELDIR}/${KERNEL}/arch/x86/include -isystem ${KERNELDIR}/${KERNEL}/arch/x86/include/uapi -isystem ${KERNELDIR}/${KERNEL}/include/linux"
+  - ./autogen.sh --with-kernel=${KERNELDIR}/${KERNEL} && make EXTRA_CFLAGS="-fno-pie -Werror -Wno-type-limits -Wno-unused-function -isystem ./arch/x86/include -isystem ./arch/x86/include/generated/uapi -isystem ./arch/x86/include/generated -isystem ./include -isystem ./arch/x86/include/uapi -isystem ./include/uapi -isystem ./include/generated/uapi"
 
 jobs:
   include:
