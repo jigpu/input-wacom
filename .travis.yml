@@ -3,6 +3,7 @@ language: c
 compiler: gcc
 
 env:
+  - KERNEL="upstream"
   - KERNEL="linux-4.5"
   - KERNEL="linux-3.17"
   - KERNEL="linux-3.7"
@@ -26,8 +27,9 @@ addons:
       - bc
 
 install:
+  - if [[ ${KERNEL} = "upstream" ]]; then KERNEL=$(git ls-remote --tags https://github.com/torvalds/linux.git | grep -v "\^{}\|rc" | sed 's~.*/v~linux-~' | tail -n1); echo ${KERNEL}; fi
   - export KERNELDIR=${HOME}/kernel && echo ${KERNELDIR}
-  - export SERIES=$(case ${KERNEL} in linux-4.*) echo v4.x;; linux-3.*) echo v3.x;; linux-2.6.*) echo v2.6;; esac) && echo ${SERIES}
+  - export SERIES=$(case ${KERNEL} in linux-5.*) echo v5.x;; linux-4.*) echo v4.x;; linux-3.*) echo v3.x;; linux-2.6.*) echo v2.6;; esac) && echo ${SERIES}
   - export URL=https://cdn.kernel.org/pub/linux/kernel/${SERIES}/${KERNEL}.tar.xz && echo ${URL}
   - mkdir ${KERNELDIR}
   - curl ${URL} | tar xJC ${KERNELDIR}
