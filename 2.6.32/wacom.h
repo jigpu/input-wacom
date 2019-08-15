@@ -108,6 +108,14 @@ MODULE_LICENSE("GPL");
 #define USB_VENDOR_ID_WACOM	0x056a
 #define USB_VENDOR_ID_LENOVO	0x17ef
 
+#ifdef usb_get_extra_descriptor
+#undef usb_get_extra_descriptor
+#define usb_get_extra_descriptor(ifpoint, type, ptr) \
+				 __usb_get_extra_descriptor((char *)((ifpoint)->extra), \
+				 (ifpoint)->extralen, \
+				 type, (void **)ptr)
+#endif
+
 struct wacom {
 	dma_addr_t data_dma;
 	struct usb_device *usbdev;
