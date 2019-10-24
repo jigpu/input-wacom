@@ -347,6 +347,10 @@ static void wacom_feature_mapping(struct hid_device *hdev,
 				ret = hid_report_raw_event(hdev,
 					HID_FEATURE_REPORT, data, n, 0);
 			} else {
+				ret = -1;
+			}
+
+			if (ret) {
 				features->touch_max = 16;
 				hid_warn(hdev, "wacom_feature_mapping: "
 					 "could not get HID_DG_CONTACTMAX, "
