@@ -337,7 +337,7 @@ static void wacom_feature_mapping(struct hid_device *hdev,
 		if (!features->touch_max) {
 			/* read manually */
 			n = hid_report_len(field->report);
-			data = hid_alloc_report_buf(field->report, GFP_KERNEL);
+			data = hid_alloc_report_buf(field->report, GFP_KERNEL | __GFP_ZERO);
 			if (!data)
 				break;
 			data[0] = field->report->id;
