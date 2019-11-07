@@ -1370,6 +1370,7 @@ static int wacom_led_register_one(struct device *dev, struct wacom *wacom,
 				  struct wacom_led *led, unsigned int group,
 				  unsigned int id, bool read_only)
 {
+#ifdef CONFIG_LEDS_TRIGGERS
 	int error;
 	char *name;
 
@@ -1420,6 +1421,10 @@ static int wacom_led_register_one(struct device *dev, struct wacom *wacom,
 	}
 
 	return 0;
+#else
+	hid_err(wacom->hdev, "LED triggers are not supported by this kernel\n");
+	return -ENOTSUPP;
+#endif /* CONFIG_LEDS_TRIGGERS */
 }
 
 static void wacom_led_groups_release_one(void *data)
