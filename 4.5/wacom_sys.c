@@ -1530,6 +1530,7 @@ struct wacom_led *wacom_led_find(struct wacom *wacom, unsigned int group_id,
  */
 struct wacom_led *wacom_led_next(struct wacom *wacom, struct wacom_led *cur)
 {
+#ifdef CONFIG_LEDS_TRIGGERS
 	struct wacom_led *next_led;
 	int group, next;
 
@@ -1546,6 +1547,9 @@ struct wacom_led *wacom_led_next(struct wacom *wacom, struct wacom_led *cur)
 	} while (next_led->cdev.trigger != &next_led->trigger);
 
 	return next_led;
+#else
+	return NULL;
+#endif /* CONFIG_LEDS_TRIGGERS */
 }
 
 static void wacom_led_groups_release(void *data)
