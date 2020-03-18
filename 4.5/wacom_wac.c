@@ -2527,6 +2527,10 @@ static void wacom_wac_finger_event(struct hid_device *hdev,
 	unsigned equivalent_usage = wacom_equivalent_usage(usage->hid);
 	struct wacom_features *features = &wacom->wacom_wac.features;
 
+if (field->report->type == HID_FEATURE_REPORT) {
+	printk("wacom_wac_finger_event\n");
+}
+
 	switch (equivalent_usage) {
 	case HID_GD_X:
 		wacom_wac->hid_data.x = value;
@@ -2547,6 +2551,7 @@ static void wacom_wac_finger_event(struct hid_device *hdev,
 		wacom_wac->hid_data.tipswitch = value;
 		break;
 	case HID_DG_CONTACTMAX:
+printk("wacom_wac_finger_event: report ID %d, value: %d\n", field->report->id, value);
 		features->touch_max = value;
 		return;
 	}
@@ -2658,6 +2663,11 @@ void wacom_wac_event(struct hid_device *hdev, struct hid_field *field,
 {
 	struct wacom *wacom = hid_get_drvdata(hdev);
 
+if (field->report->type == HID_FEATURE_REPORT) {
+	printk("wacom_wac_event usage: %04x, value: %d, collection_index: %d, usage_index: %d, bit-index: %d\n", usage->hid, value, usage->collection_index, usage->usage_index, field->report_offset);
+}
+
+
 	if (wacom->wacom_wac.features.type != HID_GENERIC)
 		return;
 
@@ -2762,10 +2772,18 @@ void wacom_wac_report(struct hid_device *hdev, struct hid_report *report)
 	if (finger_in_hid_field && wacom->wacom_wac.touch_input)
 		wacom_wac_finger_pre_report(hdev, report);
 
+	if (report->type == HID_FEATURE_REPORT) {
+		printk("wacom_wac_report: feature report id 0x%02x\n", report->id);
+	}
+
 	for (r = 0; r < report->maxfield; r++) {
 		field = report->field[r];
 
 		if (field->usage[0].collection_index != prev_collection) {
+			if (report->type == HID_FEATURE_REPORT) {
+				printk("wacom_wac_report r: %d, collection_index: %d\n", r, field->usage[0].collection_index);
+			}
+
 			if (wacom_wac_collection(hdev, report,
 				field->usage[0].collection_index, field, r) < 0)
 				return;

@@ -336,19 +336,27 @@ static void wacom_feature_mapping(struct hid_device *hdev,
 		break;
 	case HID_DG_CONTACTMAX:
 		/* leave touch_max as is if predefined */
+printk("processing HID_DG_CONTACTMAX\n");
 		if (!features->touch_max) {
+printk("reading HID_DG_CONTACTMAX from device...\n");
 			/* read manually */
 			n = hid_report_len(field->report);
 			data = hid_alloc_report_buf(field->report, GFP_KERNEL);
+printk("report ID: 0x%2x, len: %d, buf: %p\n", field->report->id, n, data);
 			if (!data)
 				break;
 			data[0] = field->report->id;
+printk("buf contents: %*ph\n", n, data);
 			ret = wacom_get_report(hdev, HID_FEATURE_REPORT,
 					       data, n, WAC_CMD_RETRIES);
+printk("wacom_get_report returned %d\n", ret);
 			if (ret == n) {
+printk("injecting updated buf: %*ph\n", n, data);
 				ret = hid_report_raw_event(hdev,
 					HID_FEATURE_REPORT, data, n, 0);
+printk("hid_report_raw_event returned %d\n", ret);
 			} else {
+printk("unexpected return value\n");
 				features->touch_max = 16;
 				hid_warn(hdev, "wacom_feature_mapping: "
 					 "could not get HID_DG_CONTACTMAX, "
@@ -357,6 +365,7 @@ static void wacom_feature_mapping(struct hid_device *hdev,
 			}
 			kfree(data);
 		}
+printk("touch_max is %d\n", features->touch_max);
 		break;
 	case HID_DG_INPUTMODE:
 		/* Ignore if value index is out of bounds. */
