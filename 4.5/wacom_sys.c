@@ -350,11 +350,14 @@ printk("buf contents: %*ph\n", n, data);
 			ret = wacom_get_report(hdev, HID_FEATURE_REPORT,
 					       data, n, WAC_CMD_RETRIES);
 printk("wacom_get_report returned %d\n", ret);
-			if (ret == n) {
+			if (ret == n && features->type == HID_GENERIC) {
 printk("injecting updated buf: %*ph\n", n, data);
 				ret = hid_report_raw_event(hdev,
 					HID_FEATURE_REPORT, data, n, 0);
 printk("hid_report_raw_event returned %d\n", ret);
+			} else if (ret == 2 && features->type != HID_GENERIC) {
+printk("falling back to non-generic behavior\n");
+				features->touch_max = data[1];
 			} else {
 printk("unexpected return value\n");
 				features->touch_max = 16;
