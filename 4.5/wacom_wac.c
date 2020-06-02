@@ -4503,6 +4503,9 @@ static const struct wacom_features wacom_features_0x90 =
 static const struct wacom_features wacom_features_0x93 =
 	{ "Wacom ISDv4 93", 26202, 16325, 255, 0,
 	  TABLETPC, WACOM_INTUOS_RES, WACOM_INTUOS_RES, .touch_max = 1 };
+static const struct wacom_features wacom_features_0x94 =
+	{ "Wacom ISDv4 94", 26202, 16325, 255, 0,
+	  TABLETPC, WACOM_INTUOS_RES, WACOM_INTUOS_RES, .touch_max = 1 };
 static const struct wacom_features wacom_features_0x97 =
 	{ "Wacom ISDv4 97", 26202, 16325, 511, 0,
 	  TABLETPC, WACOM_INTUOS_RES, WACOM_INTUOS_RES }; /* Pen-only */
@@ -4797,6 +4800,7 @@ const struct hid_device_id wacom_ids[] = {
 	{ USB_DEVICE_WACOM(0x84) },
 	{ USB_DEVICE_WACOM(0x90) },
 	{ USB_DEVICE_WACOM(0x93) },
+	{ USB_DEVICE_WACOM(0x94) },
 	{ USB_DEVICE_WACOM(0x97) },
 	{ USB_DEVICE_WACOM(0x9A) },
 	{ USB_DEVICE_WACOM(0x9F) },
