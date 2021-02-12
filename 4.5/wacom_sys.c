@@ -1032,7 +1032,7 @@ static int wacom_led_control(struct wacom *wacom)
 }
 
 static int wacom_led_putimage(struct wacom *wacom, int button_id, u8 xfer_id,
-		const unsigned len, const void *img)
+		const unsigned len, const char *img)
 {
 	unsigned char *buf;
 	int i, retval;
