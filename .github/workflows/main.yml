@@ -7,6 +7,9 @@ env:
 jobs:
   compile:
     runs-on: ubuntu-20.04
+    env:
+        STATIC_ANALYSIS_FLAGS: -O0 -fanalyzer -Wanalyzer-too-complex --param analyzer-bb-explosion-factor=10 --param analyzer-max-enodes-per-program-point=100 -fanalyzer-checker=taint
+        COMPILER: gcc-10
     strategy:
       matrix:
         kernel: ["4.6", "4.5", "4.1", "3.19", "3.18", "3.17", "3.7", "3.3", "2.6.38", "2.6.36", "2.6.35", "2.6.32"]
@@ -39,6 +42,12 @@ jobs:
       - name: Checkout the repo
         uses: actions/checkout@v2
 
+      - name: Install updated compiler
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+          sudo apt update
+          sudo apt install ${{ env.COMPILER }}
+
       - name: Download and extract v${{ matrix.kernel }} kernel
         run: |
           KERNELVER=${{ matrix.kernel }}
@@ -58,19 +67,30 @@ jobs:
           KERNELVER=${{ matrix.kernel }}
           KERNELDIR=${HOME}/kernel
           KERNELROOT=${KERNELDIR}/linux-${KERNELVER}
+          export CC=${{ env.COMPILER }}
 
           # Make sure the kernel can find a header for this compiler if necessary
-          GCC_MAJOR_VER=$(gcc -dumpversion | cut -d'.' -f1)
+          GCC_MAJOR_VER=$(${CC} -dumpversion | cut -d'.' -f1)
           if [[ ! -f "${KERNELROOT}/include/linux/compiler-gcc${GCC_MAJOR_VER}.h" ]]; then
               COMPILER_H=$(ls -v ${KERNELROOT}/include/linux/compiler-gcc*.h | tail -n1)
               ln -s "${COMPILER_H}" "${KERNELROOT}/include/linux/compiler-gcc${GCC_MAJOR_VER}.h"
           fi
           make -C ${KERNELROOT} defconfig prepare modules_prepare EXTRA_CFLAGS="${PREPARE_CFLAGS} ${{ matrix.prepare_cflags }}"
 
+          # Fix jump_label funcs for GCC static analyzer
+          sed -i 's/, bool branch/, const bool branch/' ${KERNELROOT}/arch/x86/include/asm/jump_label.h
+
       - name: Build input-wacom for v${{ matrix.kernel }} kernel
         run: |
           KERNELDIR=${HOME}/kernel
           KERNELROOT=${KERNELDIR}/linux-${{ matrix.kernel }}
+          export CC=${{ env.COMPILER }}
+
           ./autogen.sh --with-kernel=${KERNELROOT}
+
+          GCC_MAJOR_VER=$(${CC} -dumpversion | cut -d'.' -f1)
+          if [[ "${GCC_MAJOR_VER}" -ge 10 ]]; then
+              COMPILE_CFLAGS="${{ env.STATIC_ANALYSIS_FLAGS }}"
+          fi
           make V=1 EXTRA_CFLAGS="${COMPILE_CFLAGS} ${{ matrix.compile_cflags }}"
 
