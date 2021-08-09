@@ -6,6 +6,7 @@
 #include "wacom_wac.h"
 #include "wacom.h"
 #include <linux/input/mt.h>
+#include <linux/hidraw.h>
 
 #define WAC_MSG_RETRIES		5
 #define WAC_CMD_RETRIES		10
@@ -93,11 +94,15 @@ static void wacom_wac_queue_insert(struct hid_device *hdev,
 	bool warned = false;
 
 	while (kfifo_avail(fifo) < size) {
+		u8 drop_buf[WACOM_PKGLEN_MAX];
+		int drop_size;
+
 		if (!warned)
 			hid_warn(hdev, "%s: kfifo has filled, starting to drop events\n", __func__);
 		warned = true;
 
-		kfifo_skip(fifo);
+		drop_size = kfifo_out(fifo, drop_buf, sizeof(drop_buf));
+		hidraw_report_event(hdev, drop_buf, drop_size);
 	}
 
 	kfifo_in(fifo, raw_data, size);
