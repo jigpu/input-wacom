@@ -135,6 +135,10 @@ static int wacom_wac_pen_serial_enforce(struct hid_device *hdev,
 	bool insert = false;
 	int i, j;
 
+	wacom_wac_queue_insert(hdev, wacom_wac->pen_fifo,
+			       raw_data, report_size);
+	return 1;
+
 	if (wacom_wac->serial[0] || !(features->quirks & WACOM_QUIRK_TOOLSERIAL))
 		return 0;
 
