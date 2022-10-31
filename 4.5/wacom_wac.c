@@ -1975,14 +1975,14 @@ static void wacom_wac_battery_event(struct hid_device *hdev, struct hid_field *f
 	case WACOM_HID_WD_BATTERY_LEVEL:
 		value = value * 100 / (field->logical_maximum - field->logical_minimum);
 		wacom_wac->hid_data.battery_capacity = value;
-		wacom_wac->hid_data.bat_connected = 1;
+		wacom_wac->hid_data.bat_connected = value || wacom_wac->hid_data.bat_charging;
 		wacom_wac->hid_data.bat_status = WACOM_POWER_SUPPLY_STATUS_AUTO;
 		wacom_wac->features.quirks |= WACOM_QUIRK_BATTERY;
 		break;
 	case WACOM_HID_WD_BATTERY_CHARGING:
 		wacom_wac->hid_data.bat_charging = value;
 		wacom_wac->hid_data.ps_connected = value;
-		wacom_wac->hid_data.bat_connected = 1;
+		wacom_wac->hid_data.bat_connected = value || wacom_wac->hid_data.battery_capacity;
 		wacom_wac->hid_data.bat_status = WACOM_POWER_SUPPLY_STATUS_AUTO;
 		wacom_wac->features.quirks |= WACOM_QUIRK_BATTERY;
 		break;
