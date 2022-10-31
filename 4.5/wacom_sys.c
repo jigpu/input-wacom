@@ -1797,8 +1797,10 @@ static int wacom_battery_get_property(struct power_supply *psy,
 				val->intval = POWER_SUPPLY_STATUS_FULL;
 			else if (battery->ps_connected)
 				val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
-			else
+			else if (battery->bat_connected)
 				val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+			else
+				val->intval = POWER_SUPPLY_STATUS_UNKNOWN;
 			break;
 		default:
 			ret = -EINVAL;
