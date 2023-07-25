@@ -359,10 +359,9 @@ struct hid_data {
 #endif
 };
 
-struct wacom_remote_data {
+struct wacom_remote_work_data {
 	struct {
 		u32 serial;
-		bool connected;
 	} remote[WACOM_MAX_REMOTES];
 };
 
