@@ -80,7 +80,7 @@ void wacom_idleprox_timeout(unsigned long data)
 		return;
 	}
 
-	hid_warn(wacom->hdev, "%s: tool appears to be hung in-prox. forcing it out.\n", __func__);
+	//hid_warn(wacom->hdev, "%s: tool appears to be hung in-prox. forcing it out.\n", __func__);
 	wacom_force_proxout(wacom_wac);
 }
 
