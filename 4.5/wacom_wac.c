@@ -42,6 +42,7 @@ static int wacom_numbered_button_to_key(int n);
 static void wacom_update_led(struct wacom *wacom, int button_count, int mask,
 			     int group);
 
+#if 0
 static void wacom_force_proxout(struct wacom_wac *wacom_wac)
 {
 	struct input_dev *input = wacom_wac->pen_input;
@@ -64,6 +65,7 @@ static void wacom_force_proxout(struct wacom_wac *wacom_wac)
 
 	input_sync(input);
 }
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
 void wacom_idleprox_timeout(struct timer_list *list)
@@ -81,7 +83,7 @@ void wacom_idleprox_timeout(unsigned long data)
 	}
 
 	hid_warn(wacom->hdev, "%s: tool appears to be hung in-prox. forcing it out.\n", __func__);
-	wacom_force_proxout(wacom_wac);
+	//wacom_force_proxout(wacom_wac);
 }
 
 /*
