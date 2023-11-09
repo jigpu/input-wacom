@@ -88,6 +88,7 @@ static int wacom_set_report(struct hid_device *hdev, u8 type, u8 *buf,
 	return retval;
 }
 
+#if 0
 static void wacom_wac_queue_insert(struct hid_device *hdev,
 				   struct kfifo_rec_ptr_2 *fifo,
 				   u8 *raw_data, int size)
@@ -189,6 +190,7 @@ static int wacom_wac_pen_serial_enforce(struct hid_device *hdev,
 
 	return insert && !flush;
 }
+#endif
 
 static int wacom_raw_event(struct hid_device *hdev, struct hid_report *report,
 		u8 *raw_data, int size)
@@ -201,8 +203,8 @@ static int wacom_raw_event(struct hid_device *hdev, struct hid_report *report,
 	if (size > WACOM_PKGLEN_MAX)
 		return 1;
 
-	if (wacom_wac_pen_serial_enforce(hdev, report, raw_data, size))
-		return -1;
+	//if (wacom_wac_pen_serial_enforce(hdev, report, raw_data, size))
+	//	return -1;
 
 	memcpy(wacom->wacom_wac.data, raw_data, size);
 
