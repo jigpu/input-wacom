@@ -2251,7 +2251,11 @@ static void wacom_wac_pad_event(struct hid_device *hdev, struct hid_field *field
 				value = wacom_offset_rotation(input, usage, value, 1, 2);
 		}
 		else if (field->flags & HID_MAIN_ITEM_RELATIVE) {
+#ifdef WACOM_RESOLUTION_MULTIPLIER
 			int hires_value = value * 120 / usage->resolution_multiplier;
+#else
+			int hires_value = value * 120;
+#endif
 			int *ring_value;
 			int lowres_code;
 
