@@ -12,6 +12,11 @@
 #define KEY_ONSCREEN_KEYBOARD	0x278
 #endif
 
+#ifndef REL_WHEEL_HI_RES
+#define REL_WHEEL_HI_RES	0x0b
+#define REL_HWHEEL_HI_RES	0x0c
+#endif
+
 /* resolution for penabled devices */
 #define WACOM_PL_RES		20
 #define WACOM_PENPRTN_RES	40
