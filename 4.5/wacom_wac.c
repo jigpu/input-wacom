@@ -2263,7 +2263,11 @@ static void wacom_wac_pad_event(struct hid_device *hdev, struct hid_field *field
 		}
 		else if (field->flags & HID_MAIN_ITEM_RELATIVE) {
 			// Emulate a legacy wheel click for every 120 units high-res travel
+#ifdef WACOM_RESOLUTION_MULTIPLIER
 			int hires_value = value * 120 / usage->resolution_multiplier;
+#else
+			int hires_value = value * 120;
+#endif
 			int *ring_value;
 			int lowres_code;
 
