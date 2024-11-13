@@ -1333,14 +1333,7 @@ enum led_brightness wacom_leds_brightness_get(struct wacom_led *led)
 {
 	struct wacom *wacom = led->wacom;
 
-	if (wacom->led.max_hlv)
-		return wacom_rescale(led->hlv, wacom->led.max_hlv, LED_FULL);
-
-	if (wacom->led.max_llv)
-		return wacom_rescale(led->llv, wacom->led.max_llv, LED_FULL);
-
-	/* device doesn't support brightness tuning */
-	return LED_FULL;
+	return wacom_rescale(led->hlv, wacom->led.max_brightness, LED_FULL);
 }
 
 static enum led_brightness __wacom_led_brightness_get(struct led_classdev *cdev)
@@ -1369,8 +1362,8 @@ static int wacom_led_brightness_set(struct led_classdev *cdev,
 		goto out;
 	}
 
-	led->llv = wacom->led.llv = wacom_rescale(brightness, LED_FULL, wacom->led.max_llv);
-	led->hlv = wacom->led.hlv = wacom_rescale(brightness, LED_FULL, wacom->led.max_hlv);
+	led->llv = wacom->led.llv = wacom_rescale(brightness, LED_FULL, wacom->led.max_brightness);
+	led->hlv = wacom->led.hlv = wacom_rescale(brightness, LED_FULL, wacom->led.max_brightness);
 
 	wacom->led.groups[led->group].select = led->id;
 
@@ -1618,7 +1611,7 @@ int wacom_initialize_leds(struct wacom *wacom)
 		if (!wacom->generic_has_leds)
 			return 0;
 		wacom->led.llv = 100;
-		wacom->led.max_llv = 100;
+		wacom->led.max_brightness = 100;
 
 		error = wacom_leds_alloc_and_register(wacom, 1, 4, false);
 		if (error) {
@@ -1637,9 +1630,8 @@ int wacom_initialize_leds(struct wacom *wacom)
 	case INTUOS4L:
 		wacom->led.llv = 10;
 		wacom->led.hlv = 20;
-		wacom->led.max_llv = 127;
-		wacom->led.max_hlv = 127;
 		wacom->led.img_lum = 10;
+		wacom->led.max_brightness = 127;
 
 		error = wacom_leds_alloc_and_register(wacom, 1, 4, false);
 		if (error) {
@@ -1657,6 +1649,7 @@ int wacom_initialize_leds(struct wacom *wacom)
 		wacom->led.llv = 0;
 		wacom->led.hlv = 0;
 		wacom->led.img_lum = 0;
+		wacom->led.max_brightness = 1;
 
 		error = wacom_leds_alloc_and_register(wacom, 2, 4, false);
 		if (error) {
@@ -1676,7 +1669,7 @@ int wacom_initialize_leds(struct wacom *wacom)
 	case INTUOSPM:
 	case INTUOSPL:
 		wacom->led.llv = 32;
-		wacom->led.max_llv = 96;
+		wacom->led.max_brightness = 96;
 
 		error = wacom_leds_alloc_and_register(wacom, 1, 4, false);
 		if (error) {
@@ -1691,7 +1684,7 @@ int wacom_initialize_leds(struct wacom *wacom)
 
 	case INTUOSP2_BT:
 		wacom->led.llv = 50;
-		wacom->led.max_llv = 100;
+		wacom->led.max_brightness = 100;
 		error = wacom_leds_alloc_and_register(wacom, 1, 4, false);
 		if (error) {
 			hid_err(wacom->hdev,
@@ -1702,7 +1695,7 @@ int wacom_initialize_leds(struct wacom *wacom)
 
 	case REMOTE:
 		wacom->led.llv = 255;
-		wacom->led.max_llv = 255;
+		wacom->led.max_brightness = 255;
 		error = wacom_led_groups_allocate(wacom, 5);
 		if (error) {
 			hid_err(wacom->hdev,
