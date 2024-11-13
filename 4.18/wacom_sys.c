@@ -1331,9 +1331,7 @@ static int wacom_devm_kfifo_alloc(struct wacom *wacom)
 
 enum led_brightness wacom_leds_brightness_get(struct wacom_led *led)
 {
-	struct wacom *wacom = led->wacom;
-
-	return wacom_rescale(led->hlv, wacom->led.max_brightness, LED_FULL);
+	return led->hlv;
 }
 
 static enum led_brightness __wacom_led_brightness_get(struct led_classdev *cdev)
@@ -1348,7 +1346,7 @@ static enum led_brightness __wacom_led_brightness_get(struct led_classdev *cdev)
 }
 
 static int wacom_led_brightness_set(struct led_classdev *cdev,
-				    enum led_brightness brightness)
+				    unsigned int brightness)
 {
 	struct wacom_led *led = container_of(cdev, struct wacom_led, cdev);
 	struct wacom *wacom = led->wacom;
@@ -1362,8 +1360,8 @@ static int wacom_led_brightness_set(struct led_classdev *cdev,
 		goto out;
 	}
 
-	led->llv = wacom->led.llv = wacom_rescale(brightness, LED_FULL, wacom->led.max_brightness);
-	led->hlv = wacom->led.hlv = wacom_rescale(brightness, LED_FULL, wacom->led.max_brightness);
+	led->llv = wacom->led.llv = brightness;
+	led->hlv = wacom->led.hlv = brightness;
 
 	wacom->led.groups[led->group].select = led->id;
 
@@ -1401,7 +1399,7 @@ static int wacom_led_register_one(struct device *dev, struct wacom *wacom,
 	led->llv = wacom->led.llv;
 	led->hlv = wacom->led.hlv;
 	led->cdev.name = name;
-	led->cdev.max_brightness = LED_FULL;
+	led->cdev.max_brightness = wacom->led.max_brightness;
 	led->cdev.flags = LED_HW_PLUGGABLE;
 	led->cdev.brightness_get = __wacom_led_brightness_get;
 	if (!read_only) {
