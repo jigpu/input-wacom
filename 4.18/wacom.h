@@ -132,8 +132,6 @@ struct wacom_led {
 	struct wacom *wacom;
 	unsigned int group;
 	unsigned int id;
-	u8 llv;
-	u8 hlv;
 	bool held;
 };
 

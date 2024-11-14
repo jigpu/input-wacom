@@ -1106,16 +1106,6 @@ static ssize_t wacom_luminance_store(struct wacom *wacom, u8 *dest,
 	mutex_lock(&wacom->lock);
 
 	*dest = value & 0x7f;
-	for (unsigned int i = 0; i < wacom->led.count; i++) {
-		struct wacom_group_leds *group = &wacom->led.groups[i];
-		for (unsigned int j = 0; j < group->count; j++) {
-			if (dest == &wacom->led.llv)
-				group->leds[j].llv = *dest;
-			else if (dest == &wacom->led.hlv)
-				group->leds[j].hlv = *dest;
-		}
-	}
-
 	err = wacom_led_control(wacom);
 
 	mutex_unlock(&wacom->lock);
@@ -1331,7 +1321,8 @@ static int wacom_devm_kfifo_alloc(struct wacom *wacom)
 
 enum led_brightness wacom_leds_brightness_get(struct wacom_led *led)
 {
-	return led->hlv;
+	struct wacom *wacom = led->wacom;
+	return wacom->led.hlv;
 }
 
 static enum led_brightness __wacom_led_brightness_get(struct led_classdev *cdev)
@@ -1360,8 +1351,8 @@ static int wacom_led_brightness_set(struct led_classdev *cdev,
 		goto out;
 	}
 
-	led->llv = wacom->led.llv = brightness;
-	led->hlv = wacom->led.hlv = brightness;
+	wacom->led.llv = brightness;
+	wacom->led.hlv = brightness;
 
 	wacom->led.groups[led->group].select = led->id;
 
@@ -1396,8 +1387,6 @@ static int wacom_led_register_one(struct device *dev, struct wacom *wacom,
 	led->group = group;
 	led->id = id;
 	led->wacom = wacom;
-	led->llv = wacom->led.llv;
-	led->hlv = wacom->led.hlv;
 	led->cdev.name = name;
 	led->cdev.max_brightness = wacom->led.max_brightness;
 	led->cdev.flags = LED_HW_PLUGGABLE;
