@@ -1400,8 +1400,10 @@ static int wacom_led_register_one(struct device *dev, struct wacom *wacom,
 
 	if (!read_only) {
 		led->trigger.name = name;
+#ifdef WACOM_TRIGGER_BRIGHTNESS
 		if (id == wacom->led.groups[group].select)
 			led->trigger.brightness = wacom_leds_brightness_get(led);
+#endif
 		error = devm_led_trigger_register(dev, &led->trigger);
 		if (error) {
 			hid_err(wacom->hdev,
