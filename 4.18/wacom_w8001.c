@@ -419,8 +419,7 @@ static int w8001_detect(struct w8001 *w8001)
 	return 0;
 }
 
-static int w8001_setup_pen(struct w8001 *w8001, char *basename,
-			   size_t basename_sz)
+static int w8001_setup_pen(struct w8001 *w8001)
 {
 	struct input_dev *dev = w8001->pen_dev;
 	struct w8001_coord coord;
@@ -455,13 +454,11 @@ static int w8001_setup_pen(struct w8001 *w8001, char *basename,
 	}
 
 	w8001->id = 0x90;
-	strlcat(basename, " Penabled", basename_sz);
 
 	return 0;
 }
 
-static int w8001_setup_touch(struct w8001 *w8001, char *basename,
-			     size_t basename_sz)
+static int w8001_setup_touch(struct w8001 *w8001, u8 *fg_count)
 {
 	struct input_dev *dev = w8001->touch_dev;
 	struct w8001_touch_query touch;
@@ -505,15 +502,15 @@ static int w8001_setup_touch(struct w8001 *w8001, char *basename,
 	case 2:
 		w8001->pktlen = W8001_PKTLEN_TOUCH93;
 		w8001->id = 0x93;
-		strlcat(basename, " 1FG", basename_sz);
+		*fg_count = 1;
 		break;
 
 	case 1:
 	case 3:
 	case 4:
 		w8001->pktlen = W8001_PKTLEN_TOUCH9A;
-		strlcat(basename, " 1FG", basename_sz);
 		w8001->id = 0x9a;
+		*fg_count = 1;
 		break;
 
 	case 5:
@@ -536,15 +533,13 @@ static int w8001_setup_touch(struct w8001 *w8001, char *basename,
 		input_abs_set_res(dev, ABS_MT_POSITION_X, touch.panel_res);
 		input_abs_set_res(dev, ABS_MT_POSITION_Y, touch.panel_res);
 
-		strlcat(basename, " 2FG", basename_sz);
+		*fg_count = 2;
 		if (w8001->max_pen_x && w8001->max_pen_y)
 			w8001->id = 0xE3;
 		else
 			w8001->id = 0xE2;
 		break;
 	}
-
-	strlcat(basename, " Touchscreen", basename_sz);
 
 	return 0;
 }
@@ -584,6 +579,29 @@ static void w8001_disconnect(struct serio *serio)
 	serio_set_drvdata(serio, NULL);
 }
 
+static int generate_name(char *dest, size_t len, bool has_pen, u8 fg_count,
+			 const char *suffix) {
+	char fg_count_str[4] = "";
+	int cnt;
+
+	cnt = snprintf(fg_count_str, sizeof(fg_count_str), "%u", fg_count);
+	if (cnt >= sizeof(fg_count_str)) {
+		return -1; /* Truncated finger count */
+	}
+
+	cnt = snprintf(dest, len, "Wacom Serial %s%s%s%s",
+		has_pen ? "Penabled " : "",
+		fg_count ? fg_count_str : "",
+		fg_count ? "FG Touchscreen " : "",
+		suffix);
+
+	if (cnt >= len) {
+		return -1; /* Truncated name */
+	}
+
+	return 0;
+}
+
 /*
  * w8001_connect() is the routine that is called when someone adds a
  * new serio device that supports the w8001 protocol and registers it as
@@ -595,8 +613,8 @@ static int w8001_connect(struct serio *serio, struct serio_driver *drv)
 	struct w8001 *w8001;
 	struct input_dev *input_dev_pen;
 	struct input_dev *input_dev_touch;
-	char basename[64] = "Wacom Serial";
 	int err, err_pen, err_touch;
+	u8 fg_count = 0;
 
 	w8001 = kzalloc(sizeof(*w8001), GFP_KERNEL);
 	input_dev_pen = input_allocate_device();
@@ -625,16 +643,18 @@ static int w8001_connect(struct serio *serio, struct serio_driver *drv)
 	/* For backwards-compatibility we compose the basename based on
 	 * capabilities and then just append the tool type
 	 */
-	err_pen = w8001_setup_pen(w8001, basename, sizeof(basename));
-	err_touch = w8001_setup_touch(w8001, basename, sizeof(basename));
+	err_pen = w8001_setup_pen(w8001);
+	err_touch = w8001_setup_touch(w8001, &fg_count);
 	if (err_pen && err_touch) {
 		err = -ENXIO;
 		goto fail3;
 	}
 
 	if (!err_pen) {
-		snprintf(w8001->pen_name, sizeof(w8001->pen_name),
-			 "%s Pen", basename);
+		err = generate_name(w8001->pen_name, sizeof(w8001->pen_name),
+				    err_pen == 0, fg_count, "Pen");
+		if (err)
+			goto fail3;
 		input_dev_pen->name = w8001->pen_name;
 
 		w8001_set_devdata(input_dev_pen, w8001, serio);
@@ -649,8 +669,10 @@ static int w8001_connect(struct serio *serio, struct serio_driver *drv)
 	}
 
 	if (!err_touch) {
-		snprintf(w8001->touch_name, sizeof(w8001->touch_name),
-			 "%s Finger", basename);
+		err = generate_name(w8001->touch_name, sizeof(w8001->touch_name),
+				    err_pen == 0, fg_count, "Finger");
+		if (err)
+			goto fail4;
 		input_dev_touch->name = w8001->touch_name;
 
 		w8001_set_devdata(input_dev_touch, w8001, serio);
